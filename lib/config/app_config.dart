@@ -1,7 +1,9 @@
 class AppConfig {
   // Update this URL to match your Laravel backend
   // For local development with XAMPP
-  static const String baseUrl = 'http://ticketsystem.local/api';
+   static const String baseUrl = 'http://ticketsystem.local/api';
+
+  //static const String baseUrl = 'https://ticket.caffedesign.in/api';
   
   // For Android emulator, use 10.0.2.2 instead of localhost
   static const String androidBaseUrl = 'http://10.0.2.2/ticketSystem/public/api';
@@ -26,3 +28,9 @@ class AppConfig {
   // Request timeout in seconds
   static const int requestTimeout = 30;
 }
+
+
+
+
+
+

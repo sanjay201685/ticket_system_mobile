@@ -23,23 +23,83 @@ class AuthService extends ChangeNotifier {
     _clearError();
 
     try {
+      print('🔐 AuthService: Starting login for $email');
       final result = await ApiService.login(
         email: email,
         password: password,
       );
 
+      print('📥 AuthService: Login result - success: ${result['success']}');
+      print('📥 AuthService: Message: ${result['message']}');
+
       if (result['success'] == true) {
-        _user = UserModel.fromJson(result['user']);
+        try {
+          // Handle different response formats
+          final userData = result['user'] ?? result['data'];
+          if (userData != null && userData is Map) {
+            _user = UserModel.fromJson(userData as Map<String, dynamic>);
+            print('✅ AuthService: User loaded successfully');
+          } else {
+            _setError('User data not found in response');
+            _setLoading(false);
+            notifyListeners();
+            return false;
+          }
+        } catch (e) {
+          print('❌ AuthService: Error parsing user data: $e');
+          _setError('Failed to parse user data: ${e.toString()}');
+          _setLoading(false);
+          notifyListeners();
+          return false;
+        }
+        
         _setLoading(false);
         notifyListeners();
         return true;
       } else {
-        _setError(result['message'] ?? 'Login failed');
+        // Extract error message from result - ALWAYS set an error
+        String errorMsg = 'Invalid credentials. Please check your email and password.';
+        
+        print('🔍 AuthService: Processing failed login result');
+        print('🔍 AuthService: Result keys: ${result.keys.toList()}');
+        
+        // Try to get error message from result
+        if (result.containsKey('message') && result['message'] != null) {
+          final msg = result['message'].toString().trim();
+          if (msg.isNotEmpty && msg != 'null') {
+            errorMsg = msg;
+            print('✅ AuthService: Got error from message: $errorMsg');
+          }
+        } else if (result.containsKey('error') && result['error'] != null) {
+          final err = result['error'].toString().trim();
+          if (err.isNotEmpty && err != 'null') {
+            errorMsg = err;
+            print('✅ AuthService: Got error from error field: $errorMsg');
+          }
+        }
+        
+        // Final check - ensure error message is not empty
+        if (errorMsg.isEmpty || errorMsg.trim().isEmpty || errorMsg == 'null') {
+          errorMsg = 'Invalid credentials. Please check your email and password.';
+          print('⚠️ AuthService: Using default error message');
+        }
+        
+        print('❌ AuthService: FINAL error message: $errorMsg');
+        print('❌ AuthService: Full result: $result');
+        
+        // ALWAYS set the error
+        _setError(errorMsg);
         _setLoading(false);
         notifyListeners();
+        
+        // Double check error was set
+        print('🔍 AuthService: Error after _setError: ${_error}');
+        
         return false;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ AuthService: Exception during login: $e');
+      print('Stack trace: $stackTrace');
       _setError('An unexpected error occurred: ${e.toString()}');
       _setLoading(false);
       notifyListeners();
@@ -194,6 +254,11 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+
+
+
+
 
 
 

@@ -32,28 +32,128 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Use AuthService to login with Laravel API
       final authService = Provider.of<AuthService>(context, listen: false);
-      final success = await authService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (success && mounted) {
-        // Navigate to dashboard on successful login
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+      
+      // Clear any previous errors
+      String? previousError = authService.error;
+      print('🔍 Previous error before login: $previousError');
+      
+      try {
+        final success = await authService.login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
-      } else if (mounted) {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authService.error ?? 'Login failed'),
-            backgroundColor: Colors.red,
-          ),
-        );
+
+        if (!mounted) return;
+
+        // Wait a tiny bit to ensure error state is updated
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Get the error message AFTER login attempt
+        final currentError = authService.error;
+        print('🔍 Error after login attempt: $currentError');
+        print('🔍 Login success status: $success');
+
+        if (success) {
+          // Navigate to dashboard on successful login
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            );
+          }
+        } else {
+          // ALWAYS show error message when login fails
+          String errorMessage = 'Invalid email or password. Please try again.';
+          
+          // Try to get error from authService
+          if (currentError != null && currentError.isNotEmpty && currentError.trim().isNotEmpty) {
+            errorMessage = currentError;
+          } else {
+            // Fallback: check if we can get error from the result
+            print('⚠️ No error in authService, using default message');
+          }
+          
+          print('🚨 FINAL Error message to display: $errorMessage');
+          
+          if (mounted) {
+            // Clear any existing snackbars first
+            ScaffoldMessenger.of(context).clearSnackBars();
+            
+            // Wait a frame to ensure UI is ready
+            await Future.delayed(const Duration(milliseconds: 50));
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.red.shade700,
+                  duration: const Duration(seconds: 6),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  action: SnackBarAction(
+                    label: 'OK',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    },
+                  ),
+                ),
+              );
+            }
+          }
+        }
+      } catch (e, stackTrace) {
+        print('❌ Exception in _login: $e');
+        print('Stack trace: $stackTrace');
+        
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          // Show error message
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'An error occurred: ${e.toString()}',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              duration: const Duration(seconds: 5),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
       }
     }
   }
@@ -106,13 +206,64 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
+    // Listen to AuthService errors in real-time
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        // Show error if it exists and we're not loading
+        if (!_isLoading && authService.error != null && authService.error!.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _showErrorSnackBar(authService.error!);
+            }
+          });
+        }
+        
+        return Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -351,6 +502,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }

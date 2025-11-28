@@ -3,11 +3,17 @@ import 'package:provider/provider.dart';
 import 'package:ticket_system/screens/login_screen.dart';
 import 'package:ticket_system/screens/dashboard_screen.dart';
 import 'package:ticket_system/services/auth_service.dart';
+import 'package:ticket_system/providers/master_provider.dart';
+import 'package:ticket_system/providers/purchase_request_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AuthService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthService()),
+        ChangeNotifierProvider(create: (context) => MasterProvider()),
+        ChangeNotifierProvider(create: (context) => PurchaseRequestProvider()),
+      ],
       child: const MyApp(),
     ),
   );
