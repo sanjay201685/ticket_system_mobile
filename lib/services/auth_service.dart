@@ -37,8 +37,11 @@ class AuthService extends ChangeNotifier {
           // Handle different response formats
           final userData = result['user'] ?? result['data'];
           if (userData != null && userData is Map) {
+            print('📋 AuthService: Raw user data from API: $userData');
             _user = UserModel.fromJson(userData as Map<String, dynamic>);
             print('✅ AuthService: User loaded successfully');
+            print('📋 AuthService: Parsed user role: "${_user?.role}"');
+            print('📋 AuthService: Can approve: ${_user?.canApprovePurchaseRequests}');
           } else {
             _setError('User data not found in response');
             _setLoading(false);

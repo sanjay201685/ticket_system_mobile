@@ -445,6 +445,9 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
                             
                             final isPending = _request!.status?.toLowerCase() == 'pending' || 
                                             _request!.status?.toLowerCase() == 'pending_team_leader' ||
+                                            _request!.status?.toLowerCase() == 'pending_manager' ||
+                                            _request!.status?.toLowerCase() == 'pending_approval' ||
+                                            _request!.status?.toLowerCase() == 'awaiting_approval' ||
                                             _request!.status == null;
                             print('   Request status: "${_request!.status ?? "null"}"');
                             print('   isPending: $isPending');

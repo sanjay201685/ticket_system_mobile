@@ -79,19 +79,27 @@ class UserModel {
     
     final userRole = role!.toLowerCase().trim();
     print('🔍 UserModel: Checking role "$userRole" for approval permissions');
+    print('🔍 UserModel: Original role value: "$role"');
     
-    // Handle various role formats
-    final canApprove = userRole == 'team_leader' || 
+    // Handle various role formats - be more permissive
+    final canApprove = 
+           // Exact matches
+           userRole == 'team_leader' || 
            userRole == 'team leader' ||
            userRole == 'teamleader' ||
            userRole == 'manager' || 
            userRole == 'cashier' ||
+           // Contains checks (more flexible)
            userRole.contains('team_leader') ||
            userRole.contains('team leader') ||
+           userRole.contains('teamleader') ||
            userRole.contains('manager') ||
-           userRole.contains('cashier');
+           userRole.contains('cashier') ||
+           // Handle plural forms
+           userRole == 'managers' ||
+           userRole == 'cashiers';
     
-    print('✅ UserModel: canApprovePurchaseRequests = $canApprove for role "$userRole"');
+    print('✅ UserModel: canApprovePurchaseRequests = $canApprove for role "$userRole" (original: "$role")');
     return canApprove;
   }
 }
