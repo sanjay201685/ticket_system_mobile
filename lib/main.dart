@@ -5,6 +5,7 @@ import 'package:ticket_system/screens/dashboard_screen.dart';
 import 'package:ticket_system/services/auth_service.dart';
 import 'package:ticket_system/providers/master_provider.dart';
 import 'package:ticket_system/providers/purchase_request_provider.dart';
+import 'package:ticket_system/providers/team_leader_provider.dart';
 
 void main() {
   runApp(
@@ -13,6 +14,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => AuthService()),
         ChangeNotifierProvider(create: (context) => MasterProvider()),
         ChangeNotifierProvider(create: (context) => PurchaseRequestProvider()),
+        ChangeNotifierProvider(create: (context) => TeamLeaderProvider()),
       ],
       child: const MyApp(),
     ),

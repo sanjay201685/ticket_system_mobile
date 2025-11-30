@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/master_provider.dart';
 import '../../providers/purchase_request_provider.dart';
+import '../../providers/team_leader_provider.dart';
 import '../../models/purchase_item_model.dart';
 import '../../models/dropdown_model.dart';
 import '../../models/supplier_model.dart';
@@ -218,6 +219,16 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
       final purchaseProvider = Provider.of<PurchaseRequestProvider>(context, listen: false);
       purchaseProvider.reset();
       _notesController.clear();
+      
+      // Refresh the purchase request list so new request appears
+      try {
+        final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
+        // Force reload to get the new request
+        teamLeaderProvider.loadPurchaseRequests(forceReload: true);
+        print('✅ Refreshed purchase request list after creation');
+      } catch (e) {
+        print('⚠️ Could not refresh purchase request list: $e');
+      }
       
       // Show success dialog
       showDialog(

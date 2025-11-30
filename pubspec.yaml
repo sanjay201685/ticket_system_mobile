@@ -40,6 +40,7 @@ dependencies:
   
   # HTTP requests for Laravel API
   http: ^1.1.0
+  dio: ^5.4.0
   
   # Shared preferences for storing auth tokens
   shared_preferences: ^2.2.2
