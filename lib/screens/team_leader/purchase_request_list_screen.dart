@@ -39,11 +39,46 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
     }
   }
 
+  Color _getStatusColor(String? status) {
+    if (status == null) return Colors.grey;
+    switch (status.toLowerCase()) {
+      case 'approved':
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+      case 'pending_team_leader':
+        return Colors.orange;
+      case 'rejected':
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusDisplayText(String? status) {
+    if (status == null) return 'Pending';
+    switch (status.toLowerCase()) {
+      case 'pending_team_leader':
+        return 'Pending';
+      case 'approved':
+        return 'Approved';
+      case 'rejected':
+        return 'Rejected';
+      case 'cancelled':
+        return 'Cancelled';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Purchase Requests Pending Approval'),
+        title: const Text('Purchase Requests'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -188,6 +223,27 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              // Status Badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(request.status),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _getStatusDisplayText(request.status),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              // Priority Badge (if exists)
                               if (request.priority != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -207,7 +263,7 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
                                     ),
                                   ),
                                 ),
-                              const SizedBox(height: 4),
+                              if (request.priority != null) const SizedBox(height: 4),
                               if (request.totalAmount != null)
                                 Text(
                                   '₹${request.totalAmount!.toStringAsFixed(2)}',

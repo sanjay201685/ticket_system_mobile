@@ -430,14 +430,31 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
                         // Action Buttons (only for team leaders, managers, cashiers)
                         Consumer<AuthService>(
                           builder: (context, authService, child) {
-                            final canApprove = authService.user?.canApprovePurchaseRequests == true;
+                            // Debug logging
+                            final user = authService.user;
+                            final userRole = user?.role;
+                            print('🔍 PurchaseRequestDetailScreen: Checking approve permissions');
+                            print('   User: ${user?.name ?? "null"}');
+                            print('   Role: "$userRole"');
+                            if (userRole != null) {
+                              print('   Role type: ${userRole.runtimeType}');
+                            }
+                            
+                            final canApprove = user?.canApprovePurchaseRequests == true;
+                            print('   canApprovePurchaseRequests: $canApprove');
+                            
                             final isPending = _request!.status?.toLowerCase() == 'pending' || 
                                             _request!.status?.toLowerCase() == 'pending_team_leader' ||
                                             _request!.status == null;
+                            print('   Request status: "${_request!.status ?? "null"}"');
+                            print('   isPending: $isPending');
                             
                             if (!canApprove || !isPending) {
+                              print('   ❌ Buttons hidden - canApprove: $canApprove, isPending: $isPending');
                               return const SizedBox.shrink();
                             }
+                            
+                            print('   ✅ Showing approve/reject buttons');
                             
                             return Container(
                               padding: const EdgeInsets.all(16),

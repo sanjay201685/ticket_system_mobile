@@ -31,12 +31,25 @@ class UserModel {
         }
       }
 
+      // Handle role - can be string or object with 'name'/'key'
+      String? roleValue;
+      if (json['role'] != null) {
+        if (json['role'] is String) {
+          roleValue = json['role'] as String;
+        } else if (json['role'] is Map) {
+          final roleMap = json['role'] as Map;
+          roleValue = roleMap['name']?.toString() ?? 
+                     roleMap['key']?.toString() ?? 
+                     roleMap['value']?.toString();
+        }
+      }
+
       return UserModel(
         id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
         name: json['name']?.toString() ?? json['username']?.toString() ?? '',
         email: json['email']?.toString() ?? '',
         emailVerifiedAt: json['email_verified_at']?.toString(),
-        role: json['role']?.toString(),
+        role: roleValue,
         createdAt: parseDate(json['created_at']?.toString()),
         updatedAt: parseDate(json['updated_at']?.toString()),
       );
@@ -59,12 +72,27 @@ class UserModel {
 
   /// Check if user can approve/reject purchase requests
   bool get canApprovePurchaseRequests {
-    if (role == null) return false;
-    final userRole = role!.toLowerCase();
-    return userRole == 'team_leader' || 
+    if (role == null) {
+      print('⚠️ UserModel: Role is null, cannot approve');
+      return false;
+    }
+    
+    final userRole = role!.toLowerCase().trim();
+    print('🔍 UserModel: Checking role "$userRole" for approval permissions');
+    
+    // Handle various role formats
+    final canApprove = userRole == 'team_leader' || 
            userRole == 'team leader' ||
+           userRole == 'teamleader' ||
            userRole == 'manager' || 
-           userRole == 'cashier';
+           userRole == 'cashier' ||
+           userRole.contains('team_leader') ||
+           userRole.contains('team leader') ||
+           userRole.contains('manager') ||
+           userRole.contains('cashier');
+    
+    print('✅ UserModel: canApprovePurchaseRequests = $canApprove for role "$userRole"');
+    return canApprove;
   }
 }
 
