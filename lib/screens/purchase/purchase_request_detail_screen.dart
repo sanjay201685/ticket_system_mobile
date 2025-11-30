@@ -9,12 +9,10 @@ import '../../services/auth_service.dart';
 
 class PurchaseRequestDetailScreen extends StatefulWidget {
   final int requestId;
-  final bool showActions; // Whether to show approve/reject buttons
 
   const PurchaseRequestDetailScreen({
     super.key,
     required this.requestId,
-    this.showActions = false, // Default to false for regular users
   });
 
   @override
@@ -76,17 +74,20 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
       // Try to use general API first (works for all roles)
       request = await PurchaseApi.getPurchaseRequestById(widget.requestId);
       
-      // If general API fails and user is team leader, try team leader API
-      if (request == null && widget.showActions) {
-        try {
-          final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
-          await teamLeaderProvider.loadPurchaseRequestById(widget.requestId, forceReload: forceReload);
-          request = teamLeaderProvider.selectedRequest;
-          if (request == null && teamLeaderProvider.error != null) {
-            _error = teamLeaderProvider.error;
+      // If general API fails and user can approve, try team leader API
+      if (request == null) {
+        final authService = Provider.of<AuthService>(context, listen: false);
+        if (authService.user?.canApprovePurchaseRequests == true) {
+          try {
+            final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
+            await teamLeaderProvider.loadPurchaseRequestById(widget.requestId, forceReload: forceReload);
+            request = teamLeaderProvider.selectedRequest;
+            if (request == null && teamLeaderProvider.error != null) {
+              _error = teamLeaderProvider.error;
+            }
+          } catch (e) {
+            print('⚠️ Team leader API also failed: $e');
           }
-        } catch (e) {
-          print('⚠️ Team leader API also failed: $e');
         }
       }
       
@@ -120,7 +121,8 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
   }
 
   Future<void> _handleApprove() async {
-    if (!widget.showActions) return;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.user?.canApprovePurchaseRequests != true) return;
     
     final provider = Provider.of<TeamLeaderProvider>(context, listen: false);
     
@@ -164,7 +166,8 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
   }
 
   Future<void> _handleReject() async {
-    if (!widget.showActions) return;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.user?.canApprovePurchaseRequests != true) return;
     
     // Show reason input dialog
     final reason = await showDialog<String>(
@@ -424,54 +427,65 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
                           ),
                         ),
                         
-                        // Action Buttons (only for team leaders)
-                        if (widget.showActions && 
-                            (_request!.status?.toLowerCase() == 'pending' || _request!.status == null))
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.3),
-                                  spreadRadius: 1,
-                                  blurRadius: 5,
-                                  offset: const Offset(0, -3),
-                                ),
-                              ],
-                            ),
-                            child: SafeArea(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _isLoading ? null : _handleApprove,
-                                      icon: const Icon(Icons.check_circle),
-                                      label: const Text('Approve'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _isLoading ? null : _handleReject,
-                                      icon: const Icon(Icons.cancel),
-                                      label: const Text('Reject'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                      ),
-                                    ),
+                        // Action Buttons (only for team leaders, managers, cashiers)
+                        Consumer<AuthService>(
+                          builder: (context, authService, child) {
+                            final canApprove = authService.user?.canApprovePurchaseRequests == true;
+                            final isPending = _request!.status?.toLowerCase() == 'pending' || 
+                                            _request!.status?.toLowerCase() == 'pending_team_leader' ||
+                                            _request!.status == null;
+                            
+                            if (!canApprove || !isPending) {
+                              return const SizedBox.shrink();
+                            }
+                            
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.3),
+                                    spreadRadius: 1,
+                                    blurRadius: 5,
+                                    offset: const Offset(0, -3),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
+                              child: SafeArea(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _isLoading ? null : _handleApprove,
+                                        icon: const Icon(Icons.check_circle),
+                                        label: const Text('Approve'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: _isLoading ? null : _handleReject,
+                                        icon: const Icon(Icons.cancel),
+                                        label: const Text('Reject'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
     );

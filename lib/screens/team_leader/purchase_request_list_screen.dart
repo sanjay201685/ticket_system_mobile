@@ -121,7 +121,6 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
                         MaterialPageRoute(
                           builder: (context) => PurchaseRequestDetailScreen(
                             requestId: request.id,
-                            showActions: true, // Show approve/reject for team leader
                           ),
                         ),
                       );
@@ -229,7 +228,6 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
                                       MaterialPageRoute(
                                         builder: (context) => PurchaseRequestDetailScreen(
                                           requestId: request.id,
-                                          showActions: true,
                                         ),
                                       ),
                                     );

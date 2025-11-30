@@ -3,6 +3,7 @@ class UserModel {
   final String name;
   final String email;
   final String? emailVerifiedAt;
+  final String? role;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -11,6 +12,7 @@ class UserModel {
     required this.name,
     required this.email,
     this.emailVerifiedAt,
+    this.role,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -34,6 +36,7 @@ class UserModel {
         name: json['name']?.toString() ?? json['username']?.toString() ?? '',
         email: json['email']?.toString() ?? '',
         emailVerifiedAt: json['email_verified_at']?.toString(),
+        role: json['role']?.toString(),
         createdAt: parseDate(json['created_at']?.toString()),
         updatedAt: parseDate(json['updated_at']?.toString()),
       );
@@ -48,9 +51,20 @@ class UserModel {
       'name': name,
       'email': email,
       'email_verified_at': emailVerifiedAt,
+      'role': role,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
+  }
+
+  /// Check if user can approve/reject purchase requests
+  bool get canApprovePurchaseRequests {
+    if (role == null) return false;
+    final userRole = role!.toLowerCase();
+    return userRole == 'team_leader' || 
+           userRole == 'team leader' ||
+           userRole == 'manager' || 
+           userRole == 'cashier';
   }
 }
 
