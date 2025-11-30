@@ -365,6 +365,30 @@ class MasterApi {
     }
   }
 
+  /// Get service tasks
+  static Future<Map<int, DropdownModel>> getServiceTasks() async {
+    try {
+      final response = await ApiClient.get('/service-tasks');
+      final result = ApiClient.handleResponse(response);
+      
+      if (result['success'] == true) {
+        final data = result['data'];
+        if (data is List) {
+          final map = <int, DropdownModel>{};
+          for (var item in data) {
+            final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+            map[model.id] = model;
+          }
+          return map;
+        }
+      }
+      return {};
+    } catch (e) {
+      print('Error fetching service tasks: $e');
+      return {};
+    }
+  }
+
   /// Load all master data in parallel
   static Future<Map<String, dynamic>> loadAllMasterData() async {
     print('=== MasterApi.loadAllMasterData: Starting parallel load ===');
@@ -382,6 +406,7 @@ class MasterApi {
         getItems(),
         getGodowns(),
         getPlants(),
+        getServiceTasks(),
       ]);
 
       print('=== All API calls completed ===');
@@ -389,7 +414,7 @@ class MasterApi {
       for (int i = 0; i < results.length; i++) {
         final result = results[i];
         final names = ['roles', 'vendorTypes', 'purchaseModes', 'priorities', 'paymentOptions', 
-                      'itemTypes', 'gstClasses', 'itemStatuses', 'suppliers', 'items', 'godowns', 'plants'];
+                      'itemTypes', 'gstClasses', 'itemStatuses', 'suppliers', 'items', 'godowns', 'plants', 'serviceTasks'];
         print('  ${names[i]}: ${result.length} items');
       }
 
@@ -406,6 +431,7 @@ class MasterApi {
         'items': results[9],
         'godowns': results[10],
         'plants': results[11],
+        'serviceTasks': results[12],
       };
       
       print('=== Returning master data map ===');
