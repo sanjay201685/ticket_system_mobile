@@ -1,73 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../providers/stock_order_provider.dart';
-import '../../widgets/shimmer_loader.dart';
-import 'stock_order_detail_screen.dart';
+import '../../../providers/stock_order_provider.dart';
+import '../../../widgets/shimmer_loader.dart';
+import '../stock_order_approval_detail_screen.dart';
 
-class StockOrderListScreen extends StatefulWidget {
-  const StockOrderListScreen({super.key});
+class TeamLeaderStockApprovalScreen extends StatefulWidget {
+  const TeamLeaderStockApprovalScreen({super.key});
 
   @override
-  State<StockOrderListScreen> createState() => _StockOrderListScreenState();
+  State<TeamLeaderStockApprovalScreen> createState() => _TeamLeaderStockApprovalScreenState();
 }
 
-class _StockOrderListScreenState extends State<StockOrderListScreen> {
+class _TeamLeaderStockApprovalScreenState extends State<TeamLeaderStockApprovalScreen> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<StockOrderProvider>(context, listen: false)
-          .loadStockOrders(forceReload: true);
+          .loadStockOrders(status: 'pending_team_leader', forceReload: true);
     });
-  }
-
-  Color _getStatusColor(String? status) {
-    if (status == null) return Colors.grey;
-    switch (status.toLowerCase()) {
-      case 'approved':
-      case 'completed':
-        return Colors.green;
-      case 'pending':
-      case 'pending_approval':
-        return Colors.orange;
-      case 'rejected':
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusDisplayText(String? status) {
-    if (status == null) return 'Pending';
-    switch (status.toLowerCase()) {
-      case 'pending_approval':
-        return 'Pending';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'cancelled':
-        return 'Cancelled';
-      case 'completed':
-        return 'Completed';
-      default:
-        return status.toUpperCase();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Orders'),
+        title: const Text('Team Leader Stock Approval'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               Provider.of<StockOrderProvider>(context, listen: false)
-                  .loadStockOrders(forceReload: true);
+                  .loadStockOrders(status: 'pending_team_leader', forceReload: true);
             },
           ),
         ],
@@ -98,7 +63,10 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => provider.loadStockOrders(forceReload: true),
+                    onPressed: () => provider.loadStockOrders(
+                      status: 'pending_team_leader',
+                      forceReload: true,
+                    ),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -114,7 +82,7 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                   Icon(Icons.inbox, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No stock orders found',
+                    'No stock orders pending approval',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
@@ -123,7 +91,10 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () => provider.loadStockOrders(forceReload: true),
+            onRefresh: () => provider.loadStockOrders(
+              status: 'pending_team_leader',
+              forceReload: true,
+            ),
             child: ListView.builder(
               itemCount: provider.stockOrders.length,
               padding: const EdgeInsets.all(8),
@@ -137,8 +108,9 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => StockOrderDetailScreen(
+                          builder: (context) => StockOrderApprovalDetailScreen(
                             orderId: order.id,
+                            approvalType: 'team_leader',
                           ),
                         ),
                       );
@@ -160,24 +132,6 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(order.status),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _getStatusDisplayText(order.status),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
@@ -231,3 +185,4 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
     );
   }
 }
+

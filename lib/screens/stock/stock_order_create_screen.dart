@@ -6,6 +6,7 @@ import '../../models/dropdown_model.dart';
 import '../../models/item_model.dart';
 import '../../models/stock_order_model.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../services/auth_service.dart';
 
 class StockOrderCreateScreen extends StatefulWidget {
   const StockOrderCreateScreen({super.key});
@@ -19,7 +20,6 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
   final _remarksController = TextEditingController();
   
   int? _selectedTechnicianId;
-  int? _selectedServiceTaskId;
   int? _selectedGodownId;
   
   List<StockOrderItemModel> _items = [];
@@ -45,7 +45,9 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
 
   Future<void> _loadMasterData() async {
     final masterProvider = Provider.of<MasterProvider>(context, listen: false);
-    if (masterProvider.items.isEmpty || masterProvider.godowns.isEmpty) {
+    if (masterProvider.technicians.isEmpty || 
+        masterProvider.activeItems.isEmpty || 
+        masterProvider.godowns.isEmpty) {
       await masterProvider.loadAllMasterData();
     }
   }
@@ -67,9 +69,8 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
     }
 
     final masterProvider = Provider.of<MasterProvider>(context, listen: false);
-    final item = masterProvider.items.firstWhere(
+    final item = masterProvider.activeItems.firstWhere(
       (item) => item.id == _selectedItemId,
-      orElse: () => masterProvider.items.first, // Fallback, but should not happen
     );
 
     setState(() {
@@ -109,13 +110,12 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     
     final data = {
-      'technician_id': _selectedTechnicianId,
-      'service_task_id': _selectedServiceTaskId,
+      'for_technician_id': _selectedTechnicianId,
       'target_godown_id': _selectedGodownId,
       'remarks': _remarksController.text.trim(),
       'items': _items.map((item) => {
         'item_id': item.itemId,
-        'qty_required': item.quantity,
+        'qty': item.quantity,
       }).toList(),
     };
 
@@ -128,23 +128,30 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Success'),
-          content: Text(result['message'] ?? 'Stock order created successfully'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to list
-              },
-              child: const Text('OK'),
-            ),
-          ],
+      // Show toast message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stock Order Created'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
+      
+      // Redirect to list
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } else {
+      // Handle 401 unauthorized - redirect to login
+      if (result['unauthorized'] == true) {
+        final authService = Provider.of<AuthService>(context, listen: false);
+        await authService.logout();
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+        return;
+      }
+      
       // Show detailed error message
       final errorMessage = result['message'] ?? 'Failed to create stock order';
       final errors = result['errors'] as List<String>?;
@@ -232,42 +239,6 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Service Task Dropdown
-                DropdownButtonFormField<int>(
-                  value: _selectedServiceTaskId,
-                  decoration: const InputDecoration(
-                    labelText: 'Service Task *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: masterProvider.serviceTasks.isEmpty
-                      ? [
-                          const DropdownMenuItem<int>(
-                            value: null,
-                            child: Text('No service tasks available'),
-                          ),
-                        ]
-                      : masterProvider.serviceTasks.map((task) {
-                          return DropdownMenuItem<int>(
-                            value: task.id,
-                            child: Text(task.name),
-                          );
-                        }).toList(),
-                  onChanged: masterProvider.serviceTasks.isEmpty
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _selectedServiceTaskId = value;
-                          });
-                        },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a service task';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
                 // Target Godown Dropdown
                 DropdownButtonFormField<int>(
                   value: _selectedGodownId,
@@ -329,12 +300,19 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
                             labelText: 'Item',
                             border: OutlineInputBorder(),
                           ),
-                          items: masterProvider.items.map((item) {
-                            return DropdownMenuItem<int>(
-                              value: item.id,
-                              child: Text(item.name),
-                            );
-                          }).toList(),
+                          items: masterProvider.activeItems.isEmpty
+                              ? [
+                                  const DropdownMenuItem<int>(
+                                    value: null,
+                                    child: Text('No active items available'),
+                                  ),
+                                ]
+                              : masterProvider.activeItems.map((item) {
+                                  return DropdownMenuItem<int>(
+                                    value: item.id,
+                                    child: Text(item.name),
+                                  );
+                                }).toList(),
                           onChanged: (value) {
                             setState(() {
                               _selectedItemId = value;
@@ -354,7 +332,7 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
                         ElevatedButton.icon(
                           onPressed: _addItem,
                           icon: const Icon(Icons.add),
-                          label: const Text('Add Item'),
+                          label: const Text('Add More'),
                         ),
                       ],
                     ),

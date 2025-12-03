@@ -22,6 +22,8 @@ class MasterProvider with ChangeNotifier {
   Map<int, DropdownModel> _godowns = {};
   Map<int, DropdownModel> _plants = {};
   Map<int, DropdownModel> _serviceTasks = {};
+  Map<int, DropdownModel> _technicians = {};
+  Map<int, ItemModel> _activeItems = {};
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -40,6 +42,8 @@ class MasterProvider with ChangeNotifier {
   List<DropdownModel> get godowns => _godowns.values.toList();
   List<DropdownModel> get plants => _plants.values.toList();
   List<DropdownModel> get serviceTasks => _serviceTasks.values.toList();
+  List<DropdownModel> get technicians => _technicians.values.toList();
+  List<ItemModel> get activeItems => _activeItems.values.toList();
 
   /// Load all master data
   Future<void> loadAllMasterData() async {
@@ -85,6 +89,8 @@ class MasterProvider with ChangeNotifier {
       _godowns = data['godowns'] as Map<int, DropdownModel>;
       _plants = data['plants'] as Map<int, DropdownModel>;
       _serviceTasks = data['serviceTasks'] as Map<int, DropdownModel>;
+      _technicians = data['technicians'] as Map<int, DropdownModel>;
+      _activeItems = data['activeItems'] as Map<int, ItemModel>;
 
       print('=== Data assigned to provider ===');
       print('_vendorTypes.length: ${_vendorTypes.length}');

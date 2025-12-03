@@ -294,9 +294,13 @@ class MasterApi {
   }
 
   /// Get items
-  static Future<Map<int, ItemModel>> getItems() async {
+  static Future<Map<int, ItemModel>> getItems({String? status}) async {
     try {
-      final response = await ApiClient.get('/items');
+      String endpoint = '/items';
+      if (status != null) {
+        endpoint += '?status=$status';
+      }
+      final response = await ApiClient.get(endpoint);
       final result = ApiClient.handleResponse(response);
       
       if (result['success'] == true) {
@@ -304,7 +308,7 @@ class MasterApi {
         if (data is List) {
           final map = <int, ItemModel>{};
           for (var item in data) {
-            final model = ItemModel.fromJson(item);
+            final model = ItemModel.fromJson(item as Map<String, dynamic>);
             map[model.id] = model;
           }
           return map;
@@ -313,6 +317,36 @@ class MasterApi {
       return {};
     } catch (e) {
       print('Error fetching items: $e');
+      return {};
+    }
+  }
+
+  /// Get technicians (users with role=technician)
+  static Future<Map<int, DropdownModel>> getTechnicians() async {
+    try {
+      final response = await ApiClient.get('/users?role=technician');
+      final result = ApiClient.handleResponse(response);
+      
+      if (result['success'] == true) {
+        final data = result['data'];
+        if (data is List) {
+          final map = <int, DropdownModel>{};
+          for (var item in data) {
+            final itemMap = item as Map<String, dynamic>;
+            // Create DropdownModel from user data
+            final model = DropdownModel(
+              id: itemMap['id'] is int ? itemMap['id'] : int.parse(itemMap['id'].toString()),
+              name: itemMap['name']?.toString() ?? '',
+              value: itemMap['name']?.toString() ?? '',
+            );
+            map[model.id] = model;
+          }
+          return map;
+        }
+      }
+      return {};
+    } catch (e) {
+      print('Error fetching technicians: $e');
       return {};
     }
   }
@@ -404,9 +438,11 @@ class MasterApi {
         getItemStatuses(),
         getSuppliers(),
         getItems(),
+        getItems(status: 'active'), // Active items
         getGodowns(),
         getPlants(),
         getServiceTasks(),
+        getTechnicians(),
       ]);
 
       print('=== All API calls completed ===');
@@ -414,7 +450,7 @@ class MasterApi {
       for (int i = 0; i < results.length; i++) {
         final result = results[i];
         final names = ['roles', 'vendorTypes', 'purchaseModes', 'priorities', 'paymentOptions', 
-                      'itemTypes', 'gstClasses', 'itemStatuses', 'suppliers', 'items', 'godowns', 'plants', 'serviceTasks'];
+                      'itemTypes', 'gstClasses', 'itemStatuses', 'suppliers', 'items', 'activeItems', 'godowns', 'plants', 'serviceTasks', 'technicians'];
         print('  ${names[i]}: ${result.length} items');
       }
 
@@ -429,9 +465,11 @@ class MasterApi {
         'itemStatuses': results[7],
         'suppliers': results[8],
         'items': results[9],
-        'godowns': results[10],
-        'plants': results[11],
-        'serviceTasks': results[12],
+        'activeItems': results[10],
+        'godowns': results[11],
+        'plants': results[12],
+        'serviceTasks': results[13],
+        'technicians': results[14],
       };
       
       print('=== Returning master data map ===');

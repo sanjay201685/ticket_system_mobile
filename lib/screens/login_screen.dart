@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ticket_system/screens/dashboard_screen.dart';
 import 'package:ticket_system/services/auth_service.dart';
+import 'package:ticket_system/screens/stock/technician/stock_order_acceptance_screen.dart';
+import 'package:ticket_system/screens/stock/team_leader/stock_order_approval_screen.dart';
+import 'package:ticket_system/screens/stock/manager/stock_order_approval_screen.dart';
+import 'package:ticket_system/screens/stock/store_keeper/stock_order_issue_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -58,10 +62,31 @@ class _LoginScreenState extends State<LoginScreen> {
         print('🔍 Login success status: $success');
 
         if (success) {
-          // Navigate to dashboard on successful login
+          // Navigate based on role
           if (mounted) {
+            final user = authService.user;
+            final role = user?.role?.toLowerCase() ?? '';
+            
+            Widget targetScreen;
+            if (role.contains('technician')) {
+              // Import and navigate to technician acceptance screen
+              targetScreen = const TechnicianStockAcceptanceScreen();
+            } else if (role.contains('team') && role.contains('leader')) {
+              // Import and navigate to team leader approval screen
+              targetScreen = const TeamLeaderStockApprovalScreen();
+            } else if (role.contains('manager')) {
+              // Import and navigate to manager approval screen
+              targetScreen = const ManagerStockApprovalScreen();
+            } else if (role.contains('store') || role.contains('keeper')) {
+              // Import and navigate to store keeper issue screen
+              targetScreen = const StoreKeeperStockIssueScreen();
+            } else {
+              // Default to dashboard for other roles
+              targetScreen = const DashboardScreen();
+            }
+            
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const DashboardScreen()),
+              MaterialPageRoute(builder: (context) => targetScreen),
             );
           }
         } else {
@@ -178,9 +203,25 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (success) {
-        // Navigate to dashboard on successful login
+        // Navigate based on role
+        final user = authService.user;
+        final role = user?.role?.toLowerCase() ?? '';
+        
+        Widget targetScreen;
+        if (role.contains('technician')) {
+          targetScreen = const TechnicianStockAcceptanceScreen();
+        } else if (role.contains('team') && role.contains('leader')) {
+          targetScreen = const TeamLeaderStockApprovalScreen();
+        } else if (role.contains('manager')) {
+          targetScreen = const ManagerStockApprovalScreen();
+        } else if (role.contains('store') || role.contains('keeper')) {
+          targetScreen = const StoreKeeperStockIssueScreen();
+        } else {
+          targetScreen = const DashboardScreen();
+        }
+        
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(builder: (context) => targetScreen),
         );
       } else {
         // Show error message

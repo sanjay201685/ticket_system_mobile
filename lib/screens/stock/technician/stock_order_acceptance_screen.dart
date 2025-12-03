@@ -1,73 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../providers/stock_order_provider.dart';
-import '../../widgets/shimmer_loader.dart';
-import 'stock_order_detail_screen.dart';
+import '../../../providers/stock_order_provider.dart';
+import '../../../widgets/shimmer_loader.dart';
+import '../../../services/auth_service.dart';
+import '../stock_order_acceptance_detail_screen.dart';
 
-class StockOrderListScreen extends StatefulWidget {
-  const StockOrderListScreen({super.key});
+class TechnicianStockAcceptanceScreen extends StatefulWidget {
+  const TechnicianStockAcceptanceScreen({super.key});
 
   @override
-  State<StockOrderListScreen> createState() => _StockOrderListScreenState();
+  State<TechnicianStockAcceptanceScreen> createState() => _TechnicianStockAcceptanceScreenState();
 }
 
-class _StockOrderListScreenState extends State<StockOrderListScreen> {
+class _TechnicianStockAcceptanceScreenState extends State<TechnicianStockAcceptanceScreen> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<StockOrderProvider>(context, listen: false)
-          .loadStockOrders(forceReload: true);
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final technicianId = authService.user?.id;
+      if (technicianId != null) {
+        Provider.of<StockOrderProvider>(context, listen: false)
+            .loadStockOrders(
+              status: 'issued',
+              forTechnicianId: technicianId,
+              forceReload: true,
+            );
+      }
     });
-  }
-
-  Color _getStatusColor(String? status) {
-    if (status == null) return Colors.grey;
-    switch (status.toLowerCase()) {
-      case 'approved':
-      case 'completed':
-        return Colors.green;
-      case 'pending':
-      case 'pending_approval':
-        return Colors.orange;
-      case 'rejected':
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusDisplayText(String? status) {
-    if (status == null) return 'Pending';
-    switch (status.toLowerCase()) {
-      case 'pending_approval':
-        return 'Pending';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'cancelled':
-        return 'Cancelled';
-      case 'completed':
-        return 'Completed';
-      default:
-        return status.toUpperCase();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Orders'),
+        title: const Text('Stock Acceptance'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              Provider.of<StockOrderProvider>(context, listen: false)
-                  .loadStockOrders(forceReload: true);
+              final authService = Provider.of<AuthService>(context, listen: false);
+              final technicianId = authService.user?.id;
+              if (technicianId != null) {
+                Provider.of<StockOrderProvider>(context, listen: false)
+                    .loadStockOrders(
+                      status: 'issued',
+                      forTechnicianId: technicianId,
+                      forceReload: true,
+                    );
+              }
             },
           ),
         ],
@@ -98,7 +80,17 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => provider.loadStockOrders(forceReload: true),
+                    onPressed: () {
+                      final authService = Provider.of<AuthService>(context, listen: false);
+                      final technicianId = authService.user?.id;
+                      if (technicianId != null) {
+                        provider.loadStockOrders(
+                          status: 'issued',
+                          forTechnicianId: technicianId,
+                          forceReload: true,
+                        );
+                      }
+                    },
                     child: const Text('Retry'),
                   ),
                 ],
@@ -114,7 +106,7 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                   Icon(Icons.inbox, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No stock orders found',
+                    'No stock orders issued',
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
@@ -123,7 +115,18 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () => provider.loadStockOrders(forceReload: true),
+            onRefresh: () {
+              final authService = Provider.of<AuthService>(context, listen: false);
+              final technicianId = authService.user?.id;
+              if (technicianId != null) {
+                return provider.loadStockOrders(
+                  status: 'issued',
+                  forTechnicianId: technicianId,
+                  forceReload: true,
+                );
+              }
+              return Future.value();
+            },
             child: ListView.builder(
               itemCount: provider.stockOrders.length,
               padding: const EdgeInsets.all(8),
@@ -137,7 +140,7 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => StockOrderDetailScreen(
+                          builder: (context) => StockOrderAcceptanceDetailScreen(
                             orderId: order.id,
                           ),
                         ),
@@ -163,24 +166,6 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                                   ),
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(order.status),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _getStatusDisplayText(order.status),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -191,18 +176,6 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                                 const SizedBox(width: 4),
                                 Text(
                                   'Date: ${DateFormat('dd MMM yyyy').format(order.createdAt!)}',
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          const SizedBox(height: 4),
-                          if (order.createdByName != null)
-                            Row(
-                              children: [
-                                const Icon(Icons.person, size: 16, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Technician: ${order.createdByName}',
                                   style: const TextStyle(fontSize: 13),
                                 ),
                               ],
@@ -231,3 +204,4 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
     );
   }
 }
+

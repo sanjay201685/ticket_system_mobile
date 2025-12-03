@@ -15,8 +15,12 @@ class StockOrderProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  /// Load stock orders list
-  Future<void> loadStockOrders({bool forceReload = false}) async {
+  /// Load stock orders list with optional status filter
+  Future<void> loadStockOrders({
+    bool forceReload = false,
+    String? status,
+    int? forTechnicianId,
+  }) async {
     if (_isLoading && !forceReload) {
       print('⚠️ StockOrderProvider: Already loading, skipping duplicate call...');
       return;
@@ -28,13 +32,18 @@ class StockOrderProvider with ChangeNotifier {
     }
     
     print('🔄 StockOrderProvider.loadStockOrders() - Starting...');
+    print('   Status filter: $status');
+    print('   For Technician ID: $forTechnicianId');
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       print('📞 StockOrderProvider: Calling StockOrderApi.getStockOrders()...');
-      _stockOrders = await StockOrderApi.getStockOrders();
+      _stockOrders = await StockOrderApi.getStockOrders(
+        status: status,
+        forTechnicianId: forTechnicianId,
+      );
       
       print('📦 StockOrderProvider: Received ${_stockOrders.length} stock orders');
       
@@ -137,6 +146,245 @@ class StockOrderProvider with ChangeNotifier {
   }
 
   /// Clear cache and reset initialization flag
+  /// Approve stock order by Team Leader
+  Future<Map<String, dynamic>> approveByTeamLeader(int id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.approveByTeamLeader(id);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        // Reload the list
+        await loadStockOrders(status: 'pending_team_leader', forceReload: true);
+        // Reload the selected order if it's the same one
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to approve stock order';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Reject stock order by Team Leader
+  Future<Map<String, dynamic>> rejectByTeamLeader(int id, {String? reason}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.rejectByTeamLeader(id, reason: reason);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        await loadStockOrders(status: 'pending_team_leader', forceReload: true);
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to reject stock order';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Approve stock order by Manager
+  Future<Map<String, dynamic>> approveByManager(int id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.approveByManager(id);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        await loadStockOrders(status: 'approved_by_team_leader', forceReload: true);
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to approve stock order';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Reject stock order by Manager
+  Future<Map<String, dynamic>> rejectByManager(int id, {String? reason}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.rejectByManager(id, reason: reason);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        await loadStockOrders(status: 'approved_by_team_leader', forceReload: true);
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to reject stock order';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Issue stock order by Store Keeper
+  Future<Map<String, dynamic>> issueStock(int id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.issueStock(id);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        await loadStockOrders(status: 'pending_store_keeper', forceReload: true);
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to issue stock';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Accept stock order by Technician
+  Future<Map<String, dynamic>> acceptStock(int id, {int? technicianId}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.acceptStock(id);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        // Reload with technician filter
+        if (technicianId != null) {
+          await loadStockOrders(
+            status: 'issued',
+            forTechnicianId: technicianId,
+            forceReload: true,
+          );
+        }
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to accept stock';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
+  /// Reject stock order by Technician
+  Future<Map<String, dynamic>> rejectStock(int id, {String? reason, int? technicianId}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await StockOrderApi.rejectStock(id, reason: reason);
+      _isLoading = false;
+      
+      if (result['success'] == true) {
+        if (technicianId != null) {
+          await loadStockOrders(
+            status: 'issued',
+            forTechnicianId: technicianId,
+            forceReload: true,
+          );
+        }
+        if (_selectedOrder?.id == id) {
+          await loadStockOrderById(id, forceReload: true);
+        }
+        return result;
+      } else {
+        _error = result['message'] ?? 'Failed to reject stock order';
+        notifyListeners();
+        return result;
+      }
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Error: ${e.toString()}';
+      notifyListeners();
+      return {
+        'success': false,
+        'message': _error,
+      };
+    }
+  }
+
   void clearCache() {
     _hasInitialized = false;
     _stockOrders = [];
