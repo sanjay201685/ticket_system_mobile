@@ -91,7 +91,8 @@ class _StockOrderApprovalDetailScreenState extends State<StockOrderApprovalDetai
     if (widget.approvalType == 'team_leader') {
       result = await provider.approveByTeamLeader(widget.orderId, remarks: remarks);
     } else {
-      result = await provider.approveByManager(widget.orderId);
+      // Manager approval - use the same remarks dialog
+      result = await provider.approveByManager(widget.orderId, remarks: remarks);
     }
 
     if (!mounted) return;

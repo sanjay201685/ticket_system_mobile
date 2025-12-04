@@ -103,7 +103,43 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
       result = await provider.approveByTeamLeader(widget.orderId, remarks: remarks);
     } else if (role.contains('manager') && 
                order.status?.toLowerCase() == 'approved_by_team_leader') {
-      result = await provider.approveByManager(widget.orderId);
+      // Show remarks input dialog (optional) - only for manager
+      final remarks = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          final remarksController = TextEditingController();
+          return AlertDialog(
+            title: const Text('Approve Stock Order'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Add remarks (optional):'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: remarksController,
+                  decoration: const InputDecoration(
+                    labelText: 'Remarks',
+                    hintText: 'e.g., Approved with reduced quantities',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('Skip'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, remarksController.text),
+                child: const Text('Approve'),
+              ),
+            ],
+          );
+        },
+      );
+      result = await provider.approveByManager(widget.orderId, remarks: remarks);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
