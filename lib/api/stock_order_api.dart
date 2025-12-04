@@ -811,23 +811,61 @@ class StockOrderApi {
   /// Issue stock order by Store Keeper
   static Future<Map<String, dynamic>> issueStock(int id) async {
     try {
-      print('🚀 StockOrderApi: Issuing stock order $id...');
-      final response = await dio.post('/mobile/stock-orders/$id/issue');
+      print('═══════════════════════════════════════════════════════');
+      print('🚀 StockOrderApi: Issuing stock order $id by Store Keeper');
+      print('   Endpoint: /stock-orders/$id/issue');
+      print('   Full URL: ${dio.options.baseUrl}/stock-orders/$id/issue');
+      print('   Method: POST');
       
-      print('📥 StockOrderApi: Response status: ${response.statusCode}');
+      // Get token for logging
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      if (token != null) {
+        print('   Token: ${token.substring(0, 20)}... (truncated)');
+      } else {
+        print('   ⚠️ No auth token found!');
+      }
+      
+      // Prepare request data (empty body for issue)
+      final requestData = <String, dynamic>{};
+      print('   Request Body: $requestData');
+      print('   Request Body Type: ${requestData.runtimeType}');
+      print('   Request Body (JSON): ${requestData.isEmpty ? "{}" : requestData}');
+      
+      final response = await dio.post(
+        '/stock-orders/$id/issue',
+        data: requestData,
+      );
+      
+      print('═══════════════════════════════════════════════════════');
+      print('📥 StockOrderApi: Response received');
+      print('   Status Code: ${response.statusCode}');
+      print('   Status Message: ${response.statusMessage}');
+      print('   Response Type: ${response.data.runtimeType}');
+      print('   Response Data: ${response.data}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data;
+        print('   ✅ Success response (${response.statusCode})');
+        
         if (responseData is Map) {
+          print('   Response is Map');
+          print('   Message: ${responseData['message']}');
+          print('   Data: ${responseData['data']}');
           return {
             'success': true,
             'message': responseData['message']?.toString() ?? 'Stock issued successfully',
+            'data': responseData['data'],
           };
+        } else {
+          print('   Response is not Map, type: ${responseData.runtimeType}');
         }
         return {
           'success': true,
           'message': 'Stock issued successfully',
         };
+      } else {
+        print('   ⚠️ Unexpected status code: ${response.statusCode}');
       }
       
       return {
@@ -835,27 +873,69 @@ class StockOrderApi {
         'message': 'Failed to issue stock',
       };
     } on DioException catch (e) {
-      print('❌ StockOrderApi: DioException: ${e.message}');
+      print('═══════════════════════════════════════════════════════');
+      print('❌ StockOrderApi: DioException in issueStock');
+      print('   Exception Type: ${e.type}');
+      print('   Error Message: ${e.message}');
+      print('   Error: ${e.error}');
+      
+      if (e.response != null) {
+        print('   Response Status: ${e.response?.statusCode}');
+        print('   Response Data: ${e.response?.data}');
+        print('   Response Headers: ${e.response?.headers}');
+      } else {
+        print('   ⚠️ No response data available');
+      }
+      
       String errorMessage = 'Failed to issue stock';
       
       if (e.response?.statusCode == 401) {
+        print('   🔒 Unauthorized (401)');
         return {
           'success': false,
           'message': 'Unauthorized. Please login again.',
           'unauthorized': true,
         };
+      } else if (e.response?.statusCode == 403) {
+        print('   🚫 Forbidden (403)');
+        errorMessage = 'You do not have permission to issue this stock order.';
+      } else if (e.response?.statusCode == 404) {
+        print('   🔍 Not Found (404)');
+        errorMessage = 'Stock order or endpoint not found.';
+      } else if (e.response?.statusCode == 422) {
+        print('   ⚠️ Validation Error (422)');
+        errorMessage = 'Validation failed. Please check the order status.';
       } else if (e.response?.data != null) {
         final errorData = e.response!.data;
-        if (errorData is Map && errorData['message'] != null) {
-          errorMessage = errorData['message'].toString();
+        print('   Error Data Type: ${errorData.runtimeType}');
+        if (errorData is Map) {
+          print('   Error Data: $errorData');
+          if (errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+            print('   Extracted Error Message: $errorMessage');
+          }
+          if (errorData['errors'] != null) {
+            print('   Validation Errors: ${errorData['errors']}');
+          }
+        } else {
+          print('   Error Data (non-Map): $errorData');
         }
       }
+      
+      print('   Final Error Message: $errorMessage');
+      print('═══════════════════════════════════════════════════════');
       
       return {
         'success': false,
         'message': errorMessage,
       };
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('═══════════════════════════════════════════════════════');
+      print('❌ StockOrderApi: Unexpected error in issueStock');
+      print('   Error: $e');
+      print('   Error Type: ${e.runtimeType}');
+      print('   Stack Trace: $stackTrace');
+      print('═══════════════════════════════════════════════════════');
       return {
         'success': false,
         'message': 'Unexpected error: ${e.toString()}',
