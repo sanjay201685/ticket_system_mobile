@@ -147,13 +147,13 @@ class StockOrderProvider with ChangeNotifier {
 
   /// Clear cache and reset initialization flag
   /// Approve stock order by Team Leader
-  Future<Map<String, dynamic>> approveByTeamLeader(int id) async {
+  Future<Map<String, dynamic>> approveByTeamLeader(int id, {String? remarks}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await StockOrderApi.approveByTeamLeader(id);
+      final result = await StockOrderApi.approveByTeamLeader(id, remarks: remarks);
       _isLoading = false;
       
       if (result['success'] == true) {

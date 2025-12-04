@@ -53,11 +53,54 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
     
     if (order == null) return;
     
+    // Show remarks input dialog (optional) - only for team leader
+    String? remarks;
+    if (role.contains('team') && role.contains('leader') && 
+        order.status?.toLowerCase() == 'pending_team_leader') {
+      remarks = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          final remarksController = TextEditingController();
+          return AlertDialog(
+            title: const Text('Approve Stock Order'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Add remarks (optional):'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: remarksController,
+                  decoration: const InputDecoration(
+                    labelText: 'Remarks',
+                    hintText: 'e.g., Approved with reduced quantities',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('Skip'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, remarksController.text),
+                child: const Text('Approve'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    if (!mounted) return;
+    
     Map<String, dynamic> result;
     
     if (role.contains('team') && role.contains('leader') && 
         order.status?.toLowerCase() == 'pending_team_leader') {
-      result = await provider.approveByTeamLeader(widget.orderId);
+      result = await provider.approveByTeamLeader(widget.orderId, remarks: remarks);
     } else if (role.contains('manager') && 
                order.status?.toLowerCase() == 'approved_by_team_leader') {
       result = await provider.approveByManager(widget.orderId);
@@ -186,17 +229,35 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
     final role = user?.role?.toLowerCase() ?? '';
     final status = order.status?.toLowerCase() ?? '';
     
+    print('🔍 StockOrderDetailScreen: Checking approve/reject buttons');
+    print('   User Role: "$role" (original: "${user?.role}")');
+    print('   Order Status: "$status" (original: "${order.status}")');
+    
     // Team Leader can approve/reject pending_team_leader orders
-    if (role.contains('team') && role.contains('leader') && 
-        status == 'pending_team_leader') {
+    final isTeamLeader = role.contains('team') && role.contains('leader');
+    final isPendingTL = status == 'pending_team_leader';
+    
+    print('   Is Team Leader: $isTeamLeader');
+    print('   Is Pending TL: $isPendingTL');
+    
+    if (isTeamLeader && isPendingTL) {
+      print('   ✅ Showing buttons for Team Leader');
       return true;
     }
     
     // Manager can approve/reject approved_by_team_leader orders
-    if (role.contains('manager') && status == 'approved_by_team_leader') {
+    final isManager = role.contains('manager');
+    final isApprovedByTL = status == 'approved_by_team_leader';
+    
+    print('   Is Manager: $isManager');
+    print('   Is Approved by TL: $isApprovedByTL');
+    
+    if (isManager && isApprovedByTL) {
+      print('   ✅ Showing buttons for Manager');
       return true;
     }
     
+    print('   ❌ Not showing buttons');
     return false;
   }
 

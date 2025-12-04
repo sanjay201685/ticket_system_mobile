@@ -427,12 +427,12 @@ class StockOrderApi {
   }
 
   /// Approve stock order by Team Leader
-  static Future<Map<String, dynamic>> approveByTeamLeader(int id) async {
+  static Future<Map<String, dynamic>> approveByTeamLeader(int id, {String? remarks}) async {
     try {
       print('═══════════════════════════════════════════════════════');
       print('🚀 StockOrderApi: Approving stock order $id by Team Leader');
-      print('   Endpoint: /mobile/stock-orders/$id/approve-tl');
-      print('   Full URL: ${dio.options.baseUrl}/mobile/stock-orders/$id/approve-tl');
+      print('   Endpoint: /stock-orders/$id/approve-tl');
+      print('   Full URL: ${dio.options.baseUrl}/stock-orders/$id/approve-tl');
       print('   Method: POST');
       
       // Get token for logging
@@ -444,14 +444,18 @@ class StockOrderApi {
         print('   ⚠️ No auth token found!');
       }
       
-      // Prepare request data (empty body for approve)
+      // Prepare request data with remarks if available
       final requestData = <String, dynamic>{};
+      if (remarks != null && remarks.trim().isNotEmpty) {
+        requestData['remarks'] = remarks.trim();
+        print('   Remarks: ${remarks.trim()}');
+      }
       print('   Request Body: $requestData');
       print('   Request Body Type: ${requestData.runtimeType}');
       print('   Request Body (JSON): ${requestData.isEmpty ? "{}" : requestData}');
       
       final response = await dio.post(
-        '/mobile/stock-orders/$id/approve-tl',
+        '/stock-orders/$id/approve-tl',
         data: requestData,
       );
       

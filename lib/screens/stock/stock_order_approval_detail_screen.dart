@@ -46,11 +46,50 @@ class _StockOrderApprovalDetailScreenState extends State<StockOrderApprovalDetai
   }
 
   Future<void> _handleApprove() async {
+    // Show remarks input dialog (optional)
+    final remarks = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final remarksController = TextEditingController();
+        return AlertDialog(
+          title: const Text('Approve Stock Order'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Add remarks (optional):'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: remarksController,
+                decoration: const InputDecoration(
+                  labelText: 'Remarks',
+                  hintText: 'e.g., Approved with reduced quantities',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, null),
+              child: const Text('Skip'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, remarksController.text),
+              child: const Text('Approve'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted) return;
+
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     Map<String, dynamic> result;
 
     if (widget.approvalType == 'team_leader') {
-      result = await provider.approveByTeamLeader(widget.orderId);
+      result = await provider.approveByTeamLeader(widget.orderId, remarks: remarks);
     } else {
       result = await provider.approveByManager(widget.orderId);
     }
