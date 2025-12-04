@@ -151,7 +151,7 @@ class _StockOrderApprovalDetailScreenState extends State<StockOrderApprovalDetai
       ),
     );
 
-    if (reason == null && !mounted) return;
+    if (reason == null || !mounted) return;
 
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     Map<String, dynamic> result;

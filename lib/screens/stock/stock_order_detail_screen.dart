@@ -213,7 +213,7 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
       ),
     );
 
-    if (reason == null && !mounted) return;
+    if (reason == null || !mounted) return;
 
     Map<String, dynamic> result;
     

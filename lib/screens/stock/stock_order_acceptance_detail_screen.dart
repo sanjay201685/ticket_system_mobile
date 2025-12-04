@@ -105,7 +105,7 @@ class _StockOrderAcceptanceDetailScreenState extends State<StockOrderAcceptanceD
       ),
     );
 
-    if (reason == null && !mounted) return;
+    if (reason == null || !mounted) return;
 
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
