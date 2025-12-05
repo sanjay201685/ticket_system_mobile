@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../providers/stock_order_provider.dart';
 import '../../../widgets/shimmer_loader.dart';
-import '../stock_order_issue_detail_screen.dart';
+import '../stock_order_detail_screen.dart';
 
 class StoreKeeperStockIssueScreen extends StatefulWidget {
   const StoreKeeperStockIssueScreen({super.key});
@@ -108,7 +108,7 @@ class _StoreKeeperStockIssueScreenState extends State<StoreKeeperStockIssueScree
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => StockOrderIssueDetailScreen(
+                          builder: (context) => StockOrderDetailScreen(
                             orderId: order.id,
                           ),
                         ),

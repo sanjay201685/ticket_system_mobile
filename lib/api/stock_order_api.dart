@@ -985,7 +985,12 @@ class StockOrderApi {
   }
 
   /// Issue stock order by Store Keeper
-  static Future<Map<String, dynamic>> issueStock(int id) async {
+  static Future<Map<String, dynamic>> issueStock(
+    int id, {
+    required int godownId,
+    required int forTechnicianId,
+    String? remarks,
+  }) async {
     try {
       print('═══════════════════════════════════════════════════════');
       print('🚀 StockOrderApi: Issuing stock order $id by Store Keeper');
@@ -1002,11 +1007,22 @@ class StockOrderApi {
         print('   ⚠️ No auth token found!');
       }
       
-      // Prepare request data (empty body for issue)
-      final requestData = <String, dynamic>{};
+      // Prepare request data
+      final requestData = <String, dynamic>{
+        'godown_id': godownId,
+        'for_technician_id': forTechnicianId,
+      };
+      if (remarks != null && remarks.trim().isNotEmpty) {
+        requestData['remarks'] = remarks.trim();
+      }
       print('   Request Body: $requestData');
       print('   Request Body Type: ${requestData.runtimeType}');
-      print('   Request Body (JSON): ${requestData.isEmpty ? "{}" : requestData}');
+      print('   Request Body (JSON): $requestData');
+      print('   Godown ID: $godownId');
+      print('   Technician ID: $forTechnicianId');
+      if (remarks != null && remarks.trim().isNotEmpty) {
+        print('   Remarks: ${remarks.trim()}');
+      }
       
       final response = await dio.post(
         '/stock-orders/$id/issue',

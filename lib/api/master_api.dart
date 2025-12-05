@@ -324,6 +324,27 @@ class MasterApi {
   /// Get technicians (users with role=technician)
   static Future<Map<int, DropdownModel>> getTechnicians() async {
     try {
+      // Try dropdown endpoint first, fallback to direct endpoint
+      try {
+        final response = await ApiClient.get('/dropdowns/technicians');
+        final result = ApiClient.handleResponse(response);
+        
+        if (result['success'] == true) {
+          final data = result['data'];
+          if (data is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data) {
+              final model = DropdownModel.fromJson(item);
+              map[model.id] = model;
+            }
+            return map;
+          }
+        }
+      } catch (e) {
+        print('Dropdown endpoint failed, trying direct endpoint: $e');
+      }
+      
+      // Fallback to direct endpoint
       final response = await ApiClient.get('/users?role=technician');
       final result = ApiClient.handleResponse(response);
       
@@ -354,6 +375,27 @@ class MasterApi {
   /// Get godowns
   static Future<Map<int, DropdownModel>> getGodowns() async {
     try {
+      // Try dropdown endpoint first, fallback to direct endpoint
+      try {
+        final response = await ApiClient.get('/dropdowns/godowns');
+        final result = ApiClient.handleResponse(response);
+        
+        if (result['success'] == true) {
+          final data = result['data'];
+          if (data is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data) {
+              final model = DropdownModel.fromJson(item);
+              map[model.id] = model;
+            }
+            return map;
+          }
+        }
+      } catch (e) {
+        print('Dropdown endpoint failed, trying direct endpoint: $e');
+      }
+      
+      // Fallback to direct endpoint
       final response = await ApiClient.get('/godowns');
       final result = ApiClient.handleResponse(response);
       

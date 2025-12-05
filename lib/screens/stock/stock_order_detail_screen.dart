@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/stock_order_provider.dart';
+import '../../providers/master_provider.dart';
 import '../../models/stock_order_model.dart';
 import '../../widgets/shimmer_loader.dart';
 import '../../services/auth_service.dart';
@@ -21,6 +22,11 @@ class StockOrderDetailScreen extends StatefulWidget {
 class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
   bool _isInitialized = false;
   final _reasonController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _remarksController = TextEditingController();
+  int? _selectedGodownId;
+  int? _selectedTechnicianId;
+  bool _isLoadingData = false;
 
   @override
   void initState() {
@@ -29,6 +35,7 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
       if (!_isInitialized && mounted) {
         _isInitialized = true;
         _loadStockOrder();
+        _loadMasterData();
       }
     });
   }
@@ -36,12 +43,95 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
   @override
   void dispose() {
     _reasonController.dispose();
+    _remarksController.dispose();
     super.dispose();
   }
 
   Future<void> _loadStockOrder({bool forceReload = false}) async {
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     await provider.loadStockOrderById(widget.orderId, forceReload: forceReload);
+  }
+
+  Future<void> _loadMasterData() async {
+    final masterProvider = Provider.of<MasterProvider>(context, listen: false);
+    if (masterProvider.godowns.isEmpty || masterProvider.technicians.isEmpty) {
+      setState(() {
+        _isLoadingData = true;
+      });
+      await masterProvider.loadAllMasterData();
+      if (mounted) {
+        setState(() {
+          _isLoadingData = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleIssueStock() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedGodownId == null || _selectedTechnicianId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select Godown and Technician'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final provider = Provider.of<StockOrderProvider>(context, listen: false);
+    final result = await provider.issueStock(
+      widget.orderId,
+      godownId: _selectedGodownId!,
+      forTechnicianId: _selectedTechnicianId!,
+      remarks: _remarksController.text.trim().isNotEmpty 
+          ? _remarksController.text.trim() 
+          : null,
+    );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? '✅ Stock Issued Successfully'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      if (result['unauthorized'] == true) {
+        final authService = Provider.of<AuthService>(context, listen: false);
+        await authService.logout();
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Failed to issue stock'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  bool _shouldShowIssueForm(StockOrderModel order, AuthService authService) {
+    final user = authService.user;
+    final role = user?.role?.toString().toLowerCase().replaceAll(' ', '_') ?? '';
+    final status = order.status?.toLowerCase() ?? '';
+    
+    final isStoreKeeper = role.contains('store') || 
+                         role.contains('store_keeper') || 
+                         role.contains('storekeeper');
+    final isPendingStoreKeeper = status == 'pending_store_keeper';
+    
+    return isStoreKeeper && isPendingStoreKeeper;
   }
 
   Future<void> _handleApprove() async {
@@ -187,30 +277,56 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
     
     if (order == null) return;
 
-    // Show reason input dialog
+    // Show reason input dialog (mandatory)
     final reason = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reject Stock Order'),
-        content: TextField(
-          controller: _reasonController,
-          decoration: const InputDecoration(
-            labelText: 'Reason (Optional)',
-            border: OutlineInputBorder(),
+      builder: (context) {
+        final reasonController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Reject Stock Order'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Please provide a reason for rejection',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason *',
+                    hintText: 'Enter rejection reason',
+                    border: OutlineInputBorder(),
+                    errorText: null,
+                  ),
+                  maxLines: 3,
+                  onChanged: (value) {
+                    setState(() {}); // Rebuild to update button state
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: reasonController.text.trim().isEmpty
+                    ? null
+                    : () => Navigator.pop(context, reasonController.text.trim()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Reject'),
+              ),
+            ],
           ),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, _reasonController.text),
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (reason == null || !mounted) return;
@@ -454,9 +570,167 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
                   ),
                 ),
               ),
-              // Action Buttons
+              // Action Buttons Section
               Consumer<AuthService>(
                 builder: (context, authService, child) {
+                  final order = provider.selectedOrder!;
+                  
+                  // Check if should show issue form for store keeper
+                  if (_shouldShowIssueForm(order, authService)) {
+                    final masterProvider = Provider.of<MasterProvider>(context);
+                    
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Issue Stock',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Godown Dropdown
+                            DropdownButtonFormField<int>(
+                              value: _selectedGodownId,
+                              decoration: InputDecoration(
+                                labelText: 'Select Godown *',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.warehouse),
+                                errorText: masterProvider.godowns.isEmpty 
+                                    ? 'No godowns available. Please contact administrator.' 
+                                    : null,
+                              ),
+                              items: masterProvider.godowns.isEmpty
+                                  ? [
+                                      const DropdownMenuItem<int>(
+                                        value: null,
+                                        enabled: false,
+                                        child: Text('No godowns available'),
+                                      ),
+                                    ]
+                                  : masterProvider.godowns.map((godown) {
+                                      return DropdownMenuItem<int>(
+                                        value: godown.id,
+                                        child: Text(godown.name),
+                                      );
+                                    }).toList(),
+                              onChanged: masterProvider.godowns.isEmpty
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _selectedGodownId = value;
+                                      });
+                                    },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select a godown';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            // Technician Dropdown
+                            DropdownButtonFormField<int>(
+                              value: _selectedTechnicianId,
+                              decoration: InputDecoration(
+                                labelText: 'Select Technician *',
+                                border: const OutlineInputBorder(),
+                                prefixIcon: const Icon(Icons.person),
+                                errorText: masterProvider.technicians.isEmpty 
+                                    ? 'No technicians available. Please contact administrator.' 
+                                    : null,
+                              ),
+                              items: masterProvider.technicians.isEmpty
+                                  ? [
+                                      const DropdownMenuItem<int>(
+                                        value: null,
+                                        enabled: false,
+                                        child: Text('No technicians available'),
+                                      ),
+                                    ]
+                                  : masterProvider.technicians.map((technician) {
+                                      return DropdownMenuItem<int>(
+                                        value: technician.id,
+                                        child: Text(technician.name),
+                                      );
+                                    }).toList(),
+                              onChanged: masterProvider.technicians.isEmpty
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _selectedTechnicianId = value;
+                                      });
+                                    },
+                              validator: (value) {
+                                if (value == null) {
+                                  return 'Please select a technician';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            // Remarks TextArea
+                            TextFormField(
+                              controller: _remarksController,
+                              decoration: const InputDecoration(
+                                labelText: 'Remarks',
+                                hintText: 'Enter remarks (optional)',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.note),
+                                alignLabelWithHint: true,
+                              ),
+                              maxLines: 3,
+                              textInputAction: TextInputAction.done,
+                            ),
+                            const SizedBox(height: 16),
+                            // Issue Stock Button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: provider.isLoading ? null : _handleIssueStock,
+                                icon: provider.isLoading
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Icon(Icons.check_circle),
+                                label: Text(provider.isLoading ? 'Issuing Stock...' : 'Issue Stock'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  disabledBackgroundColor: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  // Show approve/reject buttons for Team Leader and Manager
                   if (!_shouldShowApproveRejectButtons(order, authService)) {
                     return const SizedBox.shrink();
                   }

@@ -118,30 +118,55 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
   }
 
   Future<String?> _showRejectDialog(BuildContext context) async {
-    final reasonController = TextEditingController();
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reject Stock Order'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(
-            labelText: 'Reason (Optional)',
-            border: OutlineInputBorder(),
+      builder: (context) {
+        final reasonController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Reject Stock Order'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Please provide a reason for rejection',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: reasonController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason *',
+                    hintText: 'Enter rejection reason',
+                    border: OutlineInputBorder(),
+                    errorText: null,
+                  ),
+                  maxLines: 3,
+                  onChanged: (value) {
+                    setState(() {}); // Rebuild to update button state
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: reasonController.text.trim().isEmpty
+                    ? null
+                    : () => Navigator.pop(context, reasonController.text.trim()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Reject'),
+              ),
+            ],
           ),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, reasonController.text),
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

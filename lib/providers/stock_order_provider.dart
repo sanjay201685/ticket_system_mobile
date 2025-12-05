@@ -277,13 +277,23 @@ class StockOrderProvider with ChangeNotifier {
   }
 
   /// Issue stock order by Store Keeper
-  Future<Map<String, dynamic>> issueStock(int id) async {
+  Future<Map<String, dynamic>> issueStock(
+    int id, {
+    required int godownId,
+    required int forTechnicianId,
+    String? remarks,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await StockOrderApi.issueStock(id);
+      final result = await StockOrderApi.issueStock(
+        id,
+        godownId: godownId,
+        forTechnicianId: forTechnicianId,
+        remarks: remarks,
+      );
       _isLoading = false;
       
       if (result['success'] == true) {
