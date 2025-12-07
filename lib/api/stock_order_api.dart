@@ -89,7 +89,7 @@ class StockOrderApi {
   static Future<List<StockOrderModel>> getStockOrders({String? status, int? forTechnicianId}) async {
     try {
       print('🚀 StockOrderApi: Fetching stock orders...');
-      String endpoint = '/mobile/stock-orders';
+      String endpoint = '/stock-orders';
       List<String> queryParams = [];
       
       if (status != null) {
@@ -243,7 +243,7 @@ class StockOrderApi {
   static Future<StockOrderModel?> getStockOrderById(int id) async {
     try {
       print('🚀 StockOrderApi: Fetching stock order $id...');
-      final response = await dio.get('/mobile/stock-orders/$id');
+      final response = await dio.get('/stock-orders/$id');
       
       print('📥 StockOrderApi: Response status: ${response.statusCode}');
       
@@ -299,7 +299,7 @@ class StockOrderApi {
     try {
       print('🚀 StockOrderApi: Creating stock order...');
       print('   Data: $data');
-      final response = await dio.post('/mobile/stock-orders', data: data);
+      final response = await dio.post('/stock-orders', data: data);
       
       print('📥 StockOrderApi: Response status: ${response.statusCode}');
       print('📥 StockOrderApi: Response data: ${response.data}');
@@ -1139,7 +1139,7 @@ class StockOrderApi {
   static Future<Map<String, dynamic>> acceptStock(int id) async {
     try {
       print('🚀 StockOrderApi: Accepting stock order $id...');
-      final response = await dio.post('/mobile/stock-orders/$id/accept');
+      final response = await dio.post('/stock-orders/$id/accept');
       
       print('📥 StockOrderApi: Response status: ${response.statusCode}');
       
