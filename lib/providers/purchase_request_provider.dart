@@ -236,7 +236,8 @@ class PurchaseRequestProvider with ChangeNotifier {
         'client_id': null,  // Always include
         'site_id': _siteId,  // Always include, even if null
         'vendor_id': _vendorId,  // Always include, even if null
-        'vendor_type_id': _vendorTypeId,  // Send vendor_type_id instead of vendor_type string
+        'vendor_type_id': _vendorTypeId,  // Send vendor_type_id
+        'vendor_type': _vendorType ?? (_vendorTypeId == 1 ? 'registered' : _vendorTypeId == 2 ? 'other' : ''),  // Always send vendor_type (required by backend validation)
         if (_vendorName != null && _vendorName!.isNotEmpty) 'vendor_name': _vendorName,  // Include if provided
         'purchase_mode_id': _purchaseModeId,  // Always include, even if null (only ID, no key)
         'payment_option_id': _paymentOptionId,  // Always include, even if null (only ID, no key)

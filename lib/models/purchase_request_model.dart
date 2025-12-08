@@ -64,7 +64,13 @@ class PurchaseRequestModel {
                       json['user']?['name']?.toString(),
       vendorName: json['vendor']?['name']?.toString() ?? 
                   json['vendor_name']?.toString(),
-      vendorType: json['vendor_type']?.toString(),
+      vendorType: (json['vendor_type'] is Map 
+                      ? (json['vendor_type']?['key']?.toString() ?? 
+                         json['vendor_type']?['name']?.toString() ?? 
+                         json['vendor_type']?['value']?.toString())
+                      : json['vendor_type']?.toString()) ??
+                  json['vendor_type_name']?.toString() ??
+                  json['vendor_type_key']?.toString(),
       priority: json['priority']?['key']?.toString() ?? 
                 json['priority']?['name']?.toString() ??
                 json['priority']?.toString() ?? 
