@@ -432,28 +432,31 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
                           builder: (context, authService, child) {
                             // Debug logging
                             final user = authService.user;
-                            final userRole = user?.role;
+                            final userRoleStr = user?.role?.toString().toLowerCase() ?? '';
                             print('🔍 PurchaseRequestDetailScreen: Checking approve permissions');
                             print('   User: ${user?.name ?? "null"}');
-                            print('   Role: "$userRole"');
-                            if (userRole != null) {
-                              print('   Role type: ${userRole.runtimeType}');
-                            }
+                            print('   Role: "$userRoleStr"');
                             
                             final canApprove = user?.canApprovePurchaseRequests == true;
                             print('   canApprovePurchaseRequests: $canApprove');
                             
-                            final isPending = _request!.status?.toLowerCase() == 'pending' || 
-                                            _request!.status?.toLowerCase() == 'pending_team_leader' ||
-                                            _request!.status?.toLowerCase() == 'pending_manager' ||
-                                            _request!.status?.toLowerCase() == 'pending_approval' ||
-                                            _request!.status?.toLowerCase() == 'awaiting_approval' ||
-                                            _request!.status == null;
-                            print('   Request status: "${_request!.status ?? "null"}"');
-                            print('   isPending: $isPending');
+                            // Get status key from status object or fallback to status string
+                            final statusKey = _request!.statusObj?['key']?.toString()?.toLowerCase() ?? 
+                                            _request!.status?.toLowerCase();
                             
-                            if (!canApprove || !isPending) {
-                              print('   ❌ Buttons hidden - canApprove: $canApprove, isPending: $isPending');
+                            // Team Leader: show approve button only when status.key == 'pending_team_leader'
+                            // Manager: show approve button only when status.key == 'pending_manager'
+                            final shouldShowApprove = canApprove && (
+                              (userRoleStr.contains('team') && userRoleStr.contains('leader') && statusKey == 'pending_team_leader') ||
+                              (userRoleStr.contains('manager') && statusKey == 'pending_manager')
+                            );
+                            
+                            print('   Request status key: "$statusKey"');
+                            print('   User role: "$userRoleStr"');
+                            print('   shouldShowApprove: $shouldShowApprove');
+                            
+                            if (!shouldShowApprove) {
+                              print('   ❌ Buttons hidden - canApprove: $canApprove, shouldShowApprove: $shouldShowApprove');
                               return const SizedBox.shrink();
                             }
                             

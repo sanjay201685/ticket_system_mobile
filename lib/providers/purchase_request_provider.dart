@@ -7,7 +7,8 @@ class PurchaseRequestProvider with ChangeNotifier {
   String? _error;
 
   // Form fields
-  String? _vendorType;  // Key/value string (e.g., 'registered', 'other')
+  int? _vendorTypeId;  // ID for vendor_type
+  String? _vendorType;  // Key/value string (e.g., 'registered', 'other') - kept for backward compatibility
   int? _vendorId;
   String? _vendorName;  // Required if vendor_type is 'other'
   int? _purchaseModeId;  // ID for purchase_mode
@@ -25,6 +26,7 @@ class PurchaseRequestProvider with ChangeNotifier {
   String? get error => _error;
 
   // Getters
+  int? get vendorTypeId => _vendorTypeId;
   String? get vendorType => _vendorType;
   int? get vendorId => _vendorId;
   String? get vendorName => _vendorName;
@@ -40,6 +42,11 @@ class PurchaseRequestProvider with ChangeNotifier {
   List<PurchaseItemModel> get items => _items;
 
   // Setters
+  void setVendorTypeId(int? id) {
+    _vendorTypeId = id;
+    notifyListeners();
+  }
+
   void setVendorType(String? value) {
     _vendorType = value;
     notifyListeners();
@@ -129,20 +136,20 @@ class PurchaseRequestProvider with ChangeNotifier {
   String? validateForm() {
     print('=== Provider validateForm called ===');
     
-    if (_vendorType == null || _vendorType!.isEmpty) {
-      print('❌ Validation failed: Vendor type is null or empty');
+    if (_vendorTypeId == null) {
+      print('❌ Validation failed: Vendor type ID is null');
       return 'Please select vendor type';
     }
-    print('✅ Vendor type: $_vendorType');
+    print('✅ Vendor type ID: $_vendorTypeId');
     
-    // If vendor_type is 'registered' (ID: 1), vendor_id is required
-    if (_vendorType == 'registered' && _vendorId == null) {
+    // If vendor_type_id is 1 (registered), vendor_id is required
+    if (_vendorTypeId == 1 && _vendorId == null) {
       print('❌ Validation failed: Vendor ID is required for registered vendor');
       return 'Please select vendor';
     }
     
-    // If vendor_type is 'other' (ID: 2), BOTH vendor_id AND vendor_name are required
-    if (_vendorType == 'other') {
+    // If vendor_type_id is 2 (other), BOTH vendor_id AND vendor_name are required
+    if (_vendorTypeId == 2) {
       if (_vendorId == null) {
         print('❌ Validation failed: Vendor ID is required for other vendor');
         return 'Please select vendor';
@@ -229,7 +236,7 @@ class PurchaseRequestProvider with ChangeNotifier {
         'client_id': null,  // Always include
         'site_id': _siteId,  // Always include, even if null
         'vendor_id': _vendorId,  // Always include, even if null
-        'vendor_type': _vendorType?.toLowerCase() ?? '',  // Always include
+        'vendor_type_id': _vendorTypeId,  // Send vendor_type_id instead of vendor_type string
         if (_vendorName != null && _vendorName!.isNotEmpty) 'vendor_name': _vendorName,  // Include if provided
         'purchase_mode_id': _purchaseModeId,  // Always include, even if null (only ID, no key)
         'payment_option_id': _paymentOptionId,  // Always include, even if null (only ID, no key)
@@ -274,6 +281,7 @@ class PurchaseRequestProvider with ChangeNotifier {
 
   /// Reset form
   void reset() {
+    _vendorTypeId = null;
     _vendorType = null;
     _vendorId = null;
     _vendorName = null;

@@ -402,7 +402,9 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
                             items: masterProvider.vendorTypes,
                             onChanged: (value) {
                               print('Vendor type changed to: ${value?.name} (value: ${value?.value}, id: ${value?.id})');
-                              // Store the value/key, not the ID
+                              // Store the ID
+                              purchaseProvider.setVendorTypeId(value?.id);
+                              // Also store the value/key for backward compatibility
                               final vendorTypeKey = value?.value ?? value?.name ?? '';
                               purchaseProvider.setVendorType(vendorTypeKey);
                               // Clear vendor_id and vendor_name when type changes
@@ -413,7 +415,7 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
                               if (value?.id != 2) {
                                 purchaseProvider.setVendorName(null);
                               }
-                              print('✅ Provider vendorType after set: ${purchaseProvider.vendorType}');
+                              print('✅ Provider vendorTypeId after set: ${purchaseProvider.vendorTypeId}');
                             },
                             validator: (value) {
                               if (purchaseProvider.vendorType == null || purchaseProvider.vendorType!.isEmpty) {

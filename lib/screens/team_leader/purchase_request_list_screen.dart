@@ -230,11 +230,11 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getStatusColor(request.status),
+                                  color: _getStatusColor(request.statusObj?['name']?.toString() ?? request.status),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  _getStatusDisplayText(request.status),
+                                  _getStatusDisplayText(request.statusObj?['name']?.toString() ?? request.status),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,

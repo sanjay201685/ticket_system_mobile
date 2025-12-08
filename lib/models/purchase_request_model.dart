@@ -6,7 +6,8 @@ class PurchaseRequestModel {
   final String? vendorType;
   final String? priority;
   final double? totalAmount;
-  final String? status;
+  final String? status;  // Status string (for backward compatibility)
+  final Map<String, dynamic>? statusObj;  // Status object with key and name
   final DateTime? createdAt;
   final DateTime? requiredByDate;
   final String? paymentMode;
@@ -23,6 +24,7 @@ class PurchaseRequestModel {
     this.priority,
     this.totalAmount,
     this.status,
+    this.statusObj,
     this.createdAt,
     this.requiredByDate,
     this.paymentMode,
@@ -71,6 +73,7 @@ class PurchaseRequestModel {
       status: json['status']?['key']?.toString() ?? 
               json['status']?['name']?.toString() ??
               json['status']?.toString(),
+      statusObj: json['status'] is Map ? json['status'] as Map<String, dynamic> : null,
       createdAt: json['created_at'] != null 
           ? DateTime.tryParse(json['created_at'].toString()) 
           : null,

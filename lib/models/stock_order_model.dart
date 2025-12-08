@@ -9,6 +9,8 @@ class StockOrderModel {
   final List<StockOrderItemModel> items;
   final String? targetGodownName;
   final String? remarks;
+  final bool canIssue;
+  final bool canAccept;
 
   StockOrderModel({
     required this.id,
@@ -21,7 +23,22 @@ class StockOrderModel {
     this.items = const [],
     this.targetGodownName,
     this.remarks,
+    this.canIssue = false,
+    this.canAccept = false,
   });
+
+  /// Safely get nested string value from a map, checking if parent is a Map first
+  static String? _safeGetNestedString(Map<String, dynamic> json, String parentKey, String childKey) {
+    final parent = json[parentKey];
+    if (parent is Map<String, dynamic> || (parent is Map)) {
+      try {
+        return parent[childKey]?.toString();
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
 
   factory StockOrderModel.fromJson(Map<String, dynamic> json) {
     // Safely parse id
@@ -45,18 +62,20 @@ class StockOrderModel {
                json['orderNo']?.toString() ??
                json['order_number']?.toString(),
     createdByName: json['created_by_name']?.toString() ??
-                   json['technician']?['name']?.toString() ??
-                   json['for_technician']?['name']?.toString() ??
-                   json['created_by']?['name']?.toString() ?? 
-                   json['creator']?['name']?.toString() ??
-                   json['user']?['name']?.toString() ??
+                   _safeGetNestedString(json, 'technician', 'name') ??
+                   _safeGetNestedString(json, 'for_technician', 'name') ??
+                   _safeGetNestedString(json, 'created_by', 'name') ??
+                   _safeGetNestedString(json, 'creator', 'name') ??
+                   _safeGetNestedString(json, 'user', 'name') ??
                    json['technician_name']?.toString(),
     createdByRole: json['created_by_role']?.toString() ??
-                   json['created_by']?['role']?.toString() ?? 
-                   json['creator']?['role']?.toString(),
-    status: json['status']?.toString() ??
-            json['status']?['key']?.toString() ?? 
-            json['status']?['name']?.toString(),
+                   _safeGetNestedString(json, 'created_by', 'role') ??
+                   _safeGetNestedString(json, 'creator', 'role'),
+    status: (json['status'] is Map 
+                ? _safeGetNestedString(json, 'status', 'key') 
+                : json['status']?.toString()) ??
+            _safeGetNestedString(json, 'status', 'key') ??
+            _safeGetNestedString(json, 'status', 'name'),
       totalItems: json['total_items'] is int 
           ? json['total_items'] as int
           : json['total_items'] != null
@@ -70,10 +89,12 @@ class StockOrderModel {
           ? DateTime.tryParse(json['created_at'].toString()) 
           : null,
       items: _parseItems(json['items']),
-      targetGodownName: json['target_godown']?['name']?.toString() ??
-                       json['godown']?['name']?.toString() ??
+      targetGodownName: _safeGetNestedString(json, 'target_godown', 'name') ??
+                       _safeGetNestedString(json, 'godown', 'name') ??
                        json['target_godown_name']?.toString(),
       remarks: json['remarks']?.toString(),
+      canIssue: json['can_issue'] == true || json['can_issue'] == 1 || json['can_issue'] == '1',
+      canAccept: json['can_accept'] == true || json['can_accept'] == 1 || json['can_accept'] == '1',
     );
   }
 
@@ -85,11 +106,8 @@ class StockOrderModel {
         for (var item in itemsData) {
           try {
             if (item is Map) {
-              // Safely convert to Map<String, dynamic>
-              final itemMap = <String, dynamic>{};
-              item.forEach((key, value) {
-                itemMap[key.toString()] = value;
-              });
+              // Recursively convert nested maps to Map<String, dynamic>
+              final itemMap = _convertItemMap(item);
               parsedItems.add(StockOrderItemModel.fromJson(itemMap));
             }
           } catch (e) {
@@ -103,6 +121,30 @@ class StockOrderModel {
       }
     }
     return parsedItems;
+  }
+
+  /// Recursively convert item map to Map<String, dynamic>
+  static Map<String, dynamic> _convertItemMap(dynamic value) {
+    if (value is Map) {
+      final result = <String, dynamic>{};
+      value.forEach((key, val) {
+        final stringKey = key.toString();
+        if (val is Map) {
+          result[stringKey] = _convertItemMap(val);
+        } else if (val is List) {
+          result[stringKey] = val.map((item) {
+            if (item is Map) {
+              return _convertItemMap(item);
+            }
+            return item;
+          }).toList();
+        } else {
+          result[stringKey] = val;
+        }
+      });
+      return result;
+    }
+    return {};
   }
 
   Map<String, dynamic> toJson() {
@@ -159,8 +201,8 @@ class StockOrderItemModel {
           : json['item_id'] != null 
               ? int.tryParse(json['item_id'].toString()) 
               : null,
-      itemName: json['item']?['name']?.toString() ?? 
-                json['item']?['item_name']?.toString() ??
+      itemName: (json['item'] is Map && json['item'] != null ? (json['item'] as Map)['name']?.toString() : null) ?? 
+                (json['item'] is Map && json['item'] != null ? (json['item'] as Map)['item_name']?.toString() : null) ??
                 json['item_name']?.toString(),
       quantity: json['qty'] != null
           ? (json['qty'] is double 

@@ -123,15 +123,30 @@ class _StockOrderDetailScreenState extends State<StockOrderDetailScreen> {
 
   bool _shouldShowIssueForm(StockOrderModel order, AuthService authService) {
     final user = authService.user;
-    final role = user?.role?.toString().toLowerCase().replaceAll(' ', '_') ?? '';
-    final status = order.status?.toLowerCase() ?? '';
+    final role = user?.role?.toLowerCase()?.trim() ?? '';
+    final status = order.status?.toLowerCase()?.trim() ?? '';
     
-    final isStoreKeeper = role.contains('store') || 
-                         role.contains('store_keeper') || 
-                         role.contains('storekeeper');
-    final isPendingStoreKeeper = status == 'pending_store_keeper';
+    // Check if user is store keeper
+    final isStoreKeeper = role.contains('store') && role.contains('keeper') || 
+                          role == 'store_keeper' ||
+                          role.contains('store_keeper');
     
-    return isStoreKeeper && isPendingStoreKeeper;
+    // Check if order status is pending_store_keeper
+    final isPendingStoreKeeper = status == 'pending_store_keeper' || 
+                                 status.contains('pending_store_keeper');
+    
+    print('🔍 StockOrderDetailScreen: Checking issue form visibility');
+    print('   User Role: "$role" (original: "${user?.role}")');
+    print('   Order Status: "$status" (original: "${order.status}")');
+    print('   Is Store Keeper: $isStoreKeeper');
+    print('   Is Pending Store Keeper: $isPendingStoreKeeper');
+    print('   Can Issue (API): ${order.canIssue}');
+    
+    // Show form if: (API says can issue) OR (user is store keeper AND status is pending_store_keeper)
+    final shouldShow = order.canIssue || (isStoreKeeper && isPendingStoreKeeper);
+    print('   Should Show Issue Form: $shouldShow');
+    
+    return shouldShow;
   }
 
   Future<void> _handleApprove() async {

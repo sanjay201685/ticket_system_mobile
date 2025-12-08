@@ -85,6 +85,31 @@ class StockOrderApi {
     return _dio!;
   }
 
+  /// Recursively convert nested maps to Map<String, dynamic>
+  /// This ensures all nested objects can be safely accessed with string keys
+  static Map<String, dynamic> _convertToMapStringDynamic(dynamic value) {
+    if (value is Map) {
+      final result = <String, dynamic>{};
+      value.forEach((key, val) {
+        final stringKey = key.toString();
+        if (val is Map) {
+          result[stringKey] = _convertToMapStringDynamic(val);
+        } else if (val is List) {
+          result[stringKey] = val.map((item) {
+            if (item is Map) {
+              return _convertToMapStringDynamic(item);
+            }
+            return item;
+          }).toList();
+        } else {
+          result[stringKey] = val;
+        }
+      });
+      return result;
+    }
+    return {};
+  }
+
   /// Get list of stock orders with optional status filter
   static Future<List<StockOrderModel>> getStockOrders({String? status, int? forTechnicianId}) async {
     try {
@@ -157,31 +182,24 @@ class StockOrderApi {
           for (var item in ordersList) {
             try {
               if (item is Map) {
-                // Safely convert all keys to String
-                final itemMap = <String, dynamic>{};
+                // Recursively convert all nested maps to Map<String, dynamic>
+                // This ensures nested objects like 'status' and 'creator' are properly accessible
+                final itemMap = _convertToMapStringDynamic(item);
                 try {
-                  item.forEach((key, value) {
-                    itemMap[key.toString()] = value;
-                  });
                   final order = StockOrderModel.fromJson(itemMap);
                   orders.add(order);
-                } catch (e) {
-                  print('❌ StockOrderApi: Error converting item map: $e');
-                  print('   Item keys: ${item.keys}');
-                  print('   Item: $item');
-                  // Try direct conversion as fallback
-                  try {
-                    final order = StockOrderModel.fromJson(Map<String, dynamic>.from(item));
-                    orders.add(order);
-                  } catch (e2) {
-                    print('❌ StockOrderApi: Fallback conversion also failed: $e2');
-                    // Skip this item
-                  }
+                } catch (e, stackTrace) {
+                  print('❌ StockOrderApi: Error parsing order: $e');
+                  print('   Item keys: ${itemMap.keys}');
+                  print('   Stack trace: $stackTrace');
+                  // Skip this item and continue with next
                 }
+              } else {
+                print('⚠️ StockOrderApi: Item is not a Map, skipping. Type: ${item.runtimeType}');
               }
             } catch (e, stackTrace) {
-              print('❌ StockOrderApi: Error parsing order item: $e');
-              print('   Item: $item');
+              print('❌ StockOrderApi: Error processing order item: $e');
+              print('   Item type: ${item.runtimeType}');
               print('   Stack trace: $stackTrace');
               // Continue with next item instead of failing completely
             }
@@ -249,24 +267,35 @@ class StockOrderApi {
       
       if (response.statusCode == 200) {
         final data = response.data;
-        Map<String, dynamic> orderData;
+        Map<String, dynamic>? orderData;
         
         if (data is Map) {
           if (data['success'] == true && data['data'] != null) {
             final responseData = data['data'];
             if (responseData is Map && responseData['data'] != null) {
-              orderData = responseData['data'] as Map<String, dynamic>;
+              // Recursively convert nested maps
+              orderData = _convertToMapStringDynamic(responseData['data']);
             } else if (responseData is Map) {
-              orderData = responseData as Map<String, dynamic>;
+              // Recursively convert nested maps
+              orderData = _convertToMapStringDynamic(responseData);
             } else {
               return null;
             }
           } else if (data['data'] != null && data['data'] is Map) {
-            orderData = data['data'] as Map<String, dynamic>;
+            // Recursively convert nested maps
+            orderData = _convertToMapStringDynamic(data['data']);
+          } else if (data is Map) {
+            // Direct map response
+            orderData = _convertToMapStringDynamic(data);
           } else {
             return null;
           }
         } else {
+          return null;
+        }
+        
+        if (orderData == null) {
+          print('⚠️ StockOrderApi: Could not extract order data');
           return null;
         }
         

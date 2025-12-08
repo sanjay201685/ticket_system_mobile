@@ -465,57 +465,182 @@ class MasterApi {
     }
   }
 
+  /// Load all dropdowns from /api/meta endpoint
+  static Future<Map<String, dynamic>> loadMetaData() async {
+    try {
+      print('=== MasterApi.loadMetaData: Fetching from /api/meta ===');
+      final response = await ApiClient.get('/meta');
+      final result = ApiClient.handleResponse(response);
+      
+      if (result['success'] == true) {
+        final data = result['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          final metaData = <String, Map<int, DropdownModel>>{};
+          
+          // Parse vendor_types
+          if (data['vendor_types'] != null && data['vendor_types'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['vendor_types'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['vendorTypes'] = map;
+          }
+          
+          // Parse purchase_modes
+          if (data['purchase_modes'] != null && data['purchase_modes'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['purchase_modes'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['purchaseModes'] = map;
+          }
+          
+          // Parse payment_options
+          if (data['payment_options'] != null && data['payment_options'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['payment_options'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['paymentOptions'] = map;
+          }
+          
+          // Parse priorities
+          if (data['priorities'] != null && data['priorities'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['priorities'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['priorities'] = map;
+          }
+          
+          // Parse statuses
+          if (data['statuses'] != null && data['statuses'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['statuses'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['statuses'] = map;
+          }
+          
+          // Parse item_categories
+          if (data['item_categories'] != null && data['item_categories'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['item_categories'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['itemCategories'] = map;
+          }
+          
+          // Parse units
+          if (data['units'] != null && data['units'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['units'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['units'] = map;
+          }
+          
+          // Parse godowns
+          if (data['godowns'] != null && data['godowns'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['godowns'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['godowns'] = map;
+          }
+          
+          // Parse technicians
+          if (data['technicians'] != null && data['technicians'] is List) {
+            final map = <int, DropdownModel>{};
+            for (var item in data['technicians'] as List) {
+              final model = DropdownModel.fromJson(item as Map<String, dynamic>);
+              map[model.id] = model;
+            }
+            metaData['technicians'] = map;
+          }
+          
+          print('✅ Meta data loaded: ${metaData.keys.join(", ")}');
+          return metaData;
+        }
+      }
+      return {};
+    } catch (e) {
+      print('❌ Error loading meta data: $e');
+      return {};
+    }
+  }
+
   /// Load all master data in parallel
   static Future<Map<String, dynamic>> loadAllMasterData() async {
     print('=== MasterApi.loadAllMasterData: Starting parallel load ===');
     try {
+      // First, try to load from /api/meta
+      final metaData = await loadMetaData();
+      
+      // Load other data that's not in meta endpoint
       final results = await Future.wait([
         getRoles(),
-        getVendorTypes(),
-        getPurchaseModes(),
-        getPriorities(),
-        getPaymentOptions(),
         getItemTypes(),
         getGstClasses(),
         getItemStatuses(),
         getSuppliers(),
         getItems(),
         getItems(status: 'active'), // Active items
-        getGodowns(),
         getPlants(),
         getServiceTasks(),
-        getTechnicians(),
       ]);
 
       print('=== All API calls completed ===');
-      print('Results count: ${results.length}');
-      for (int i = 0; i < results.length; i++) {
-        final result = results[i];
-        final names = ['roles', 'vendorTypes', 'purchaseModes', 'priorities', 'paymentOptions', 
-                      'itemTypes', 'gstClasses', 'itemStatuses', 'suppliers', 'items', 'activeItems', 'godowns', 'plants', 'serviceTasks', 'technicians'];
-        print('  ${names[i]}: ${result.length} items');
-      }
-
-      final data = {
+      
+      // Merge meta data with other data
+      final data = <String, dynamic>{
         'roles': results[0],
-        'vendorTypes': results[1],
-        'purchaseModes': results[2],
-        'priorities': results[3],
-        'paymentOptions': results[4],
-        'itemTypes': results[5],
-        'gstClasses': results[6],
-        'itemStatuses': results[7],
-        'suppliers': results[8],
-        'items': results[9],
-        'activeItems': results[10],
-        'godowns': results[11],
-        'plants': results[12],
-        'serviceTasks': results[13],
-        'technicians': results[14],
+        'itemTypes': results[1],
+        'gstClasses': results[2],
+        'itemStatuses': results[3],
+        'suppliers': results[4],
+        'items': results[5],
+        'activeItems': results[6],
+        'plants': results[7],
+        'serviceTasks': results[8],
       };
       
+      // Use meta data if available, otherwise fallback to individual calls
+      if (metaData.isNotEmpty) {
+        data['vendorTypes'] = metaData['vendorTypes'] ?? await getVendorTypes();
+        data['purchaseModes'] = metaData['purchaseModes'] ?? await getPurchaseModes();
+        data['priorities'] = metaData['priorities'] ?? await getPriorities();
+        data['paymentOptions'] = metaData['paymentOptions'] ?? await getPaymentOptions();
+        data['godowns'] = metaData['godowns'] ?? await getGodowns();
+        data['technicians'] = metaData['technicians'] ?? await getTechnicians();
+      } else {
+        // Fallback to individual API calls if meta endpoint fails
+        print('⚠️ Meta endpoint failed, using individual API calls');
+        final fallbackResults = await Future.wait([
+          getVendorTypes(),
+          getPurchaseModes(),
+          getPriorities(),
+          getPaymentOptions(),
+          getGodowns(),
+          getTechnicians(),
+        ]);
+        data['vendorTypes'] = fallbackResults[0];
+        data['purchaseModes'] = fallbackResults[1];
+        data['priorities'] = fallbackResults[2];
+        data['paymentOptions'] = fallbackResults[3];
+        data['godowns'] = fallbackResults[4];
+        data['technicians'] = fallbackResults[5];
+      }
+      
       print('=== Returning master data map ===');
-      print('Returning master data map: ${data}');
       return data;
     } catch (e) {
       print('❌ Error loading master data: $e');

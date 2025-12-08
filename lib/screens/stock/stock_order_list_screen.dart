@@ -24,11 +24,11 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
       final provider = Provider.of<StockOrderProvider>(context, listen: false);
       
       // Load orders based on role
-      if (role.contains('team') && role.contains('leader')) {
-        provider.loadStockOrders(status: 'pending_team_leader', forceReload: true);
-      } else {
+      // if (role.contains('team') && role.contains('leader')) {
+        // provider.loadStockOrders(status: 'pending_team_leader', forceReload: true);
+      // } else {
         provider.loadStockOrders(forceReload: true);
-      }
+      // }
     });
   }
 
@@ -361,18 +361,19 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
                       Consumer<AuthService>(
                         builder: (context, authService, child) {
                           final user = authService.user;
-                          final role = user?.role?.toLowerCase() ?? '';
-                          final status = order.status?.toLowerCase() ?? '';
+                          final role = user?.role?.toLowerCase()?.trim() ?? '';
+                          final status = order.status?.toLowerCase()?.trim() ?? '';
                           
                           print('🔍 StockOrderListScreen: Checking buttons for order ${order.id}');
                           print('   User Role: "$role" (original: "${user?.role}")');
                           print('   Order Status: "$status" (original: "${order.status}")');
                           
                           final isTeamLeader = role.contains('team') && role.contains('leader');
-                          final isPendingTL = status == 'pending_team_leader';
+                          final isPendingTL = status == 'pending_team_leader' || status.contains('pending_team_leader');
                           
                           print('   Is Team Leader: $isTeamLeader');
                           print('   Is Pending TL: $isPendingTL');
+                          print('   Status comparison: "$status" == "pending_team_leader" = ${status == 'pending_team_leader'}');
                           
                           // Show buttons for team leader with pending_team_leader status
                           if (isTeamLeader && isPendingTL) {

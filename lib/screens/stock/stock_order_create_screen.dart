@@ -7,6 +7,7 @@ import '../../models/item_model.dart';
 import '../../models/stock_order_model.dart';
 import '../../widgets/shimmer_loader.dart';
 import '../../services/auth_service.dart';
+import 'stock_order_list_screen.dart';
 
 class StockOrderCreateScreen extends StatefulWidget {
   const StockOrderCreateScreen({super.key});
@@ -18,9 +19,6 @@ class StockOrderCreateScreen extends StatefulWidget {
 class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _remarksController = TextEditingController();
-  
-  int? _selectedTechnicianId;
-  int? _selectedGodownId;
   
   List<StockOrderItemModel> _items = [];
   int? _selectedItemId;
@@ -45,9 +43,7 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
 
   Future<void> _loadMasterData() async {
     final masterProvider = Provider.of<MasterProvider>(context, listen: false);
-    if (masterProvider.technicians.isEmpty || 
-        masterProvider.activeItems.isEmpty || 
-        masterProvider.godowns.isEmpty) {
+    if (masterProvider.activeItems.isEmpty) {
       await masterProvider.loadAllMasterData();
     }
   }
@@ -110,13 +106,11 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
     final provider = Provider.of<StockOrderProvider>(context, listen: false);
     
     final data = {
-      'for_technician_id': _selectedTechnicianId,
-      'target_godown_id': _selectedGodownId,
-      'remarks': _remarksController.text.trim(),
       'items': _items.map((item) => {
         'item_id': item.itemId,
         'qty': item.quantity,
       }).toList(),
+      if (_remarksController.text.trim().isNotEmpty) 'remarks': _remarksController.text.trim(),
     };
 
     final result = await provider.createStockOrder(data);
@@ -128,18 +122,22 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      // Show toast message
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Stock Order Created'),
+          content: Text('Stock Order Created Successfully'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
         ),
       );
       
-      // Redirect to list
+      // Navigate to Stock Order List
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const StockOrderListScreen(),
+          ),
+        );
       }
     } else {
       // Handle 401 unauthorized - redirect to login
@@ -212,60 +210,6 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Technician Dropdown
-                DropdownButtonFormField<int>(
-                  value: _selectedTechnicianId,
-                  decoration: const InputDecoration(
-                    labelText: 'Technician *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: masterProvider.roles.map((role) {
-                    return DropdownMenuItem<int>(
-                      value: role.id,
-                      child: Text(role.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedTechnicianId = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a technician';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Target Godown Dropdown
-                DropdownButtonFormField<int>(
-                  value: _selectedGodownId,
-                  decoration: const InputDecoration(
-                    labelText: 'Target Godown *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: masterProvider.godowns.map((godown) {
-                    return DropdownMenuItem<int>(
-                      value: godown.id,
-                      child: Text(godown.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedGodownId = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a target godown';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
                 // Remarks
                 TextFormField(
                   controller: _remarksController,
