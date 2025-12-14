@@ -7,6 +7,7 @@ import 'package:ticket_system/providers/master_provider.dart';
 import 'package:ticket_system/providers/purchase_request_provider.dart';
 import 'package:ticket_system/providers/team_leader_provider.dart';
 import 'package:ticket_system/providers/stock_order_provider.dart';
+import 'package:ticket_system/providers/wallet_provider.dart';
 
 void main() {
   runApp(
@@ -17,6 +18,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => PurchaseRequestProvider()),
         ChangeNotifierProvider(create: (context) => TeamLeaderProvider()),
         ChangeNotifierProvider(create: (context) => StockOrderProvider()),
+        ChangeNotifierProvider(create: (context) => WalletProvider()),
       ],
       child: const MyApp(),
     ),

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:ticket_system/services/auth_service.dart';
 import 'package:ticket_system/screens/purchase/purchase_request_create.dart';
 import 'package:ticket_system/providers/team_leader_provider.dart';
 import 'package:ticket_system/screens/team_leader/purchase_request_list_screen.dart';
 import 'package:ticket_system/screens/stock/stock_order_list_screen.dart';
 import 'package:ticket_system/screens/stock/stock_order_create_screen.dart';
+import 'package:ticket_system/widgets/app_drawer.dart';
+import 'package:ticket_system/screens/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -39,16 +40,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // TODO: Show notifications
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final authService = Provider.of<AuthService>(context, listen: false);
-              await authService.logout();
-              // Navigation will be handled automatically by AuthWrapper
-            },
-          ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -713,28 +707,3 @@ class AnalyticsScreen extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'User Profile',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Manage your profile and settings',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-}
