@@ -35,20 +35,20 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
       if (!_isInitialized && mounted && _currentLoadingId == null) {
         _isInitialized = true;
         
-        // Clear all caches to ensure fresh data
-        print('🧹 Clearing all caches for fresh data...');
+        // Clear only selected request cache (preserve list cache)
+        print('🧹 Clearing selected request cache for fresh data...');
         
         // Clear local state
         _request = null;
         _currentLoadingId = null;
         
-        // Clear TeamLeaderProvider cache
+        // Clear only selected request, not the entire cache (preserves list)
         try {
           final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
-          teamLeaderProvider.clearCache();
-          print('✅ TeamLeaderProvider cache cleared');
+          teamLeaderProvider.clearSelectedRequest();
+          print('✅ Selected request cache cleared (list preserved)');
         } catch (e) {
-          print('⚠️ Could not clear TeamLeaderProvider cache: $e');
+          print('⚠️ Could not clear selected request cache: $e');
         }
         
         // Force reload to get fresh data and avoid cache issues
@@ -89,15 +89,15 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
     try {
       PurchaseRequestModel? request;
       
-      // Clear cache if forcing reload
+      // Clear only selected request cache if forcing reload (preserve list)
       if (forceReload) {
-        print('🧹 Force reload requested - clearing caches...');
+        print('🧹 Force reload requested - clearing selected request cache...');
         try {
           final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
-          teamLeaderProvider.clearCache();
-          print('✅ Cache cleared for force reload');
+          teamLeaderProvider.clearSelectedRequest();
+          print('✅ Selected request cache cleared for force reload');
         } catch (e) {
-          print('⚠️ Could not clear cache: $e');
+          print('⚠️ Could not clear selected request cache: $e');
         }
       }
       

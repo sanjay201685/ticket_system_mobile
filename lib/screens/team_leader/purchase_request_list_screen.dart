@@ -13,14 +13,37 @@ class PurchaseRequestListScreen extends StatefulWidget {
 }
 
 class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
+  bool _hasLoaded = false;
+
   @override
   void initState() {
     super.initState();
     // Always reload when screen is opened to get latest data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TeamLeaderProvider>(context, listen: false)
-          .loadPurchaseRequests(forceReload: true);
+      _loadData();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload when screen becomes visible again (e.g., navigating back)
+    if (_hasLoaded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final provider = Provider.of<TeamLeaderProvider>(context, listen: false);
+        // Reload if list is empty (might have been cleared)
+        if (provider.purchaseRequests.isEmpty && !provider.isLoading) {
+          print('🔄 List is empty, reloading purchase requests...');
+          provider.loadPurchaseRequests(forceReload: true);
+        }
+      });
+    }
+  }
+
+  void _loadData() {
+    final provider = Provider.of<TeamLeaderProvider>(context, listen: false);
+    provider.loadPurchaseRequests(forceReload: true);
+    _hasLoaded = true;
   }
 
   Color _getPriorityColor(String? priority) {

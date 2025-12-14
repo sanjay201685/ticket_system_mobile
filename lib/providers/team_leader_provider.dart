@@ -206,5 +206,12 @@ class TeamLeaderProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  /// Clear only the selected request cache
+  /// This preserves the list cache
+  void clearSelectedRequest() {
+    _selectedRequest = null;
+    notifyListeners();
+  }
 }
 
