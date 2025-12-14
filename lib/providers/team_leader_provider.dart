@@ -83,9 +83,15 @@ class TeamLeaderProvider with ChangeNotifier {
 
   /// Load single purchase request by ID
   Future<void> loadPurchaseRequestById(int id, {bool forceReload = false}) async {
+    // If forcing reload, clear the selected request first
+    if (forceReload) {
+      _selectedRequest = null;
+    }
+    
     // Prevent reloading if already loading or if same request is already loaded
     if (!forceReload && _isLoading) return;
     if (!forceReload && _selectedRequest != null && _selectedRequest!.id == id) {
+      print('⚠️ TeamLeaderProvider: Request $id already loaded, skipping...');
       return; // Already loaded
     }
 

@@ -34,7 +34,25 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_isInitialized && mounted && _currentLoadingId == null) {
         _isInitialized = true;
-        _loadPurchaseRequest();
+        
+        // Clear all caches to ensure fresh data
+        print('🧹 Clearing all caches for fresh data...');
+        
+        // Clear local state
+        _request = null;
+        _currentLoadingId = null;
+        
+        // Clear TeamLeaderProvider cache
+        try {
+          final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
+          teamLeaderProvider.clearCache();
+          print('✅ TeamLeaderProvider cache cleared');
+        } catch (e) {
+          print('⚠️ Could not clear TeamLeaderProvider cache: $e');
+        }
+        
+        // Force reload to get fresh data and avoid cache issues
+        _loadPurchaseRequest(forceReload: true);
       }
     });
   }
@@ -71,6 +89,18 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
     try {
       PurchaseRequestModel? request;
       
+      // Clear cache if forcing reload
+      if (forceReload) {
+        print('🧹 Force reload requested - clearing caches...');
+        try {
+          final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
+          teamLeaderProvider.clearCache();
+          print('✅ Cache cleared for force reload');
+        } catch (e) {
+          print('⚠️ Could not clear cache: $e');
+        }
+      }
+      
       // Try to use general API first (works for all roles)
       request = await PurchaseApi.getPurchaseRequestById(widget.requestId);
       
@@ -80,7 +110,7 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
         if (authService.user?.canApprovePurchaseRequests == true) {
           try {
             final teamLeaderProvider = Provider.of<TeamLeaderProvider>(context, listen: false);
-            await teamLeaderProvider.loadPurchaseRequestById(widget.requestId, forceReload: forceReload);
+            await teamLeaderProvider.loadPurchaseRequestById(widget.requestId, forceReload: true);
             request = teamLeaderProvider.selectedRequest;
             if (request == null && teamLeaderProvider.error != null) {
               _error = teamLeaderProvider.error;
@@ -94,6 +124,22 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
       if (!mounted) return;
       
       if (request != null) {
+        // Debug: Log the technician name and created by name values
+        print('📋 Purchase Request Loaded:');
+        print('   ID: ${request.id}');
+        print('   technicianName: "${request.technicianName}"');
+        print('   createdByName: "${request.createdByName}"');
+        print('   createdById: ${request.createdById}');
+        
+        // Check current user role for debugging
+        final authService = Provider.of<AuthService>(context, listen: false);
+        final user = authService.user;
+        final userRole = user?.role?.toLowerCase().trim() ?? '';
+        print('   Current User Role: "$userRole"');
+        if (userRole.contains('team') && userRole.contains('leader')) {
+          print('   ⚠️ Team Leader detected - will use special name detection logic');
+        }
+        
         setState(() {
           _request = request;
           _isLoading = false;
@@ -341,7 +387,7 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
                                         _buildInfoRow('Vendor Type', _request!.vendorType ?? 'N/A'),
                                         _buildInfoRow('Priority', _request!.priority ?? 'N/A'),
                                         _buildInfoRow('Payment Mode', _request!.paymentMode ?? 'N/A'),
-                                        _buildInfoRow('Created By', _request!.createdByName ?? _request!.technicianName ?? 'N/A'),
+                                        _buildInfoRow('Created By', _getCreatedByDisplay()),
                                         if (_request!.createdAt != null)
                                           _buildInfoRow(
                                             'Created Date',
@@ -528,6 +574,106 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
       default:
         return Colors.grey;
     }
+  }
+
+  /// Get the display value for "Created By" field
+  /// For team leaders, managers, and cashiers: show technician name instead of role
+  String _getCreatedByDisplay() {
+    if (_request == null) return 'N/A';
+    
+    // Check if current user is team leader, manager, or cashier
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.user;
+    final userRole = user?.role?.toLowerCase().trim() ?? '';
+    
+    //final isTeamLeader = (userRole.contains('team') && userRole.contains('leader')) || 
+    //                     userRole.contains('teamleader') ||
+    final isTeamLeader = userRole.contains('team_leader');
+    final isManager = userRole.contains('manager');
+    final isCashier = userRole.contains('cashier');
+    
+    // Normalize string by removing spaces, underscores, hyphens for comparison
+    String normalizeString(String? value) {
+      if (value == null || value.isEmpty) return '';
+      return value.toLowerCase().trim().replaceAll(RegExp(r'[\s_\-]'), '');
+    }
+    
+    // Check if value is a role (normalized comparison)
+    bool isRole(String? value) {
+      if (value == null || value.isEmpty) return false;
+      
+      final normalized = normalizeString(value);
+      final rolePatterns = [
+        'technician',
+        'teamleader',
+        'team_leader',
+        'manager',
+        'cashier',
+        'admin',
+        'administrator',
+      ];
+      
+      // Check if normalized string matches any role pattern
+      for (var role in rolePatterns) {
+        if (normalized == role) {
+          return true;
+        }
+      }
+      
+      // Also check if the original value (case-insensitive) matches common role formats
+      final lower = value.toLowerCase().trim();
+      final exactRoles = [
+        'technician',
+        'team leader',
+        'team_leader',
+        'teamleader',
+        'team-leader',
+        'team leader',
+        'manager',
+        'cashier',
+        'admin',
+        'administrator',
+      ];
+      
+      return exactRoles.contains(lower);
+    }
+    
+    // Debug logging
+    print('🔍 _getCreatedByDisplay:');
+    print('   User role: "$userRole"');
+    print('   Is Team Leader: $isTeamLeader, Is Manager: $isManager, Is Cashier: $isCashier');
+    print('   technicianName: "${_request!.technicianName}"');
+    print('   createdByName: "${_request!.createdByName}"');
+    
+    // For team leaders, managers, and cashiers: use technicianName if it's not a role
+    if (isTeamLeader || isManager || isCashier) {
+      // Prefer technicianName - it should contain the actual name
+      if (_request!.technicianName != null && _request!.technicianName!.isNotEmpty) {
+        if (!isRole(_request!.technicianName)) {
+          print('   ✅ Using technicianName: "${_request!.technicianName}"');
+          return _request!.technicianName!;
+        } else {
+          print('   ⚠️ technicianName is a role: "${_request!.technicianName}" - REJECTED');
+        }
+      }
+      
+      // Fallback to createdByName if it's not a role
+      if (_request!.createdByName != null && _request!.createdByName!.isNotEmpty) {
+        if (!isRole(_request!.createdByName)) {
+          print('   ✅ Using createdByName: "${_request!.createdByName}"');
+          return _request!.createdByName!;
+        } else {
+          print('   ⚠️ createdByName is a role: "${_request!.createdByName}" - REJECTED');
+        }
+      }
+      
+      // If both are roles or empty, return N/A
+      print('   ❌ Both fields are roles or empty - returning N/A');
+      return 'N/A';
+    }
+    
+    // For other users (technicians), use the default logic
+    return _request!.createdByName ?? _request!.technicianName ?? 'N/A';
   }
 
   Widget _buildInfoRow(String label, String value, {bool isBold = false, Color? color}) {

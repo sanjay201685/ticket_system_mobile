@@ -20,6 +20,8 @@ class PurchaseRequestProvider with ChangeNotifier {
   int? _siteId;
   DateTime? _requiredByDate;
   String _description = '';  // Changed from notes to description
+  int? _createdRoleId;  // ID for created_role
+  String? _createdRole;  // Key/value for created_role (alternative to ID)
   List<PurchaseItemModel> _items = [];
 
   bool get isSubmitting => _isSubmitting;
@@ -39,6 +41,8 @@ class PurchaseRequestProvider with ChangeNotifier {
   int? get siteId => _siteId;
   DateTime? get requiredByDate => _requiredByDate;
   String get description => _description;
+  int? get createdRoleId => _createdRoleId;
+  String? get createdRole => _createdRole;
   List<PurchaseItemModel> get items => _items;
 
   // Setters
@@ -110,6 +114,16 @@ class PurchaseRequestProvider with ChangeNotifier {
 
   void setDescription(String value) {
     _description = value;
+    notifyListeners();
+  }
+
+  void setCreatedRoleId(int? id) {
+    _createdRoleId = id;
+    notifyListeners();
+  }
+
+  void setCreatedRole(String? role) {
+    _createdRole = role;
     notifyListeners();
   }
 
@@ -242,6 +256,8 @@ class PurchaseRequestProvider with ChangeNotifier {
         'purchase_mode_id': _purchaseModeId,  // Always include, even if null (only ID, no key)
         'payment_option_id': _paymentOptionId,  // Always include, even if null (only ID, no key)
         'priority_id': _priorityId,  // Always include, even if null (only ID, no key)
+        if (_createdRoleId != null) 'created_role_id': _createdRoleId,  // Include created_role_id if set
+        if (_createdRole != null && _createdRole!.isNotEmpty) 'created_role': _createdRole,  // Include created_role if set
         'items': _items.map((item) => {
           'item_id': item.itemId,
           'qty_required': item.qtyRequired,
@@ -295,6 +311,8 @@ class PurchaseRequestProvider with ChangeNotifier {
     _siteId = null;
     _requiredByDate = null;
     _description = '';
+    _createdRoleId = null;
+    _createdRole = null;
     _items = [];
     _error = null;
     notifyListeners();

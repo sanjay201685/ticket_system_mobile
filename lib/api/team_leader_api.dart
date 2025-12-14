@@ -271,6 +271,46 @@ class TeamLeaderApi {
         }
         
         print('✅ TeamLeaderApi: Successfully parsed purchase request');
+        
+        // Debug: Log the creator/technician data structure for team leaders
+        print('📋 TeamLeaderApi: Raw API response structure for team leaders:');
+        print('   Full requestData keys: ${requestData.keys.toList()}');
+        if (requestData.containsKey('creator')) {
+          print('   creator: ${requestData['creator']}');
+          if (requestData['creator'] is Map) {
+            final creator = requestData['creator'] as Map;
+            print('   creator keys: ${creator.keys.toList()}');
+            print('   creator.name: ${creator['name']}');
+            print('   creator.role: ${creator['role']}');
+          }
+        }
+        if (requestData.containsKey('technician_name')) {
+          print('   technician_name: ${requestData['technician_name']}');
+        }
+        if (requestData.containsKey('created_by_name')) {
+          print('   created_by_name: ${requestData['created_by_name']}');
+        }
+        if (requestData.containsKey('user')) {
+          print('   user: ${requestData['user']}');
+          if (requestData['user'] is Map) {
+            final user = requestData['user'] as Map;
+            print('   user keys: ${user.keys.toList()}');
+            print('   user.name: ${user['name']}');
+          }
+        }
+        if (requestData.containsKey('created_by')) {
+          print('   created_by: ${requestData['created_by']}');
+        }
+        // Check for technician field
+        if (requestData.containsKey('technician')) {
+          print('   technician: ${requestData['technician']}');
+          if (requestData['technician'] is Map) {
+            final technician = requestData['technician'] as Map;
+            print('   technician keys: ${technician.keys.toList()}');
+            print('   technician.name: ${technician['name']}');
+          }
+        }
+        
         return PurchaseRequestModel.fromJson(requestData);
       }
       print('⚠️ TeamLeaderApi: Unexpected status code: ${response.statusCode}');

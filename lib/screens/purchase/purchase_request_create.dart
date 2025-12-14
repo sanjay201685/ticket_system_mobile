@@ -164,9 +164,11 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
     final purchaseProvider = Provider.of<PurchaseRequestProvider>(context, listen: false);
     purchaseProvider.setDescription(_notesController.text);
     
-    // Get client_id from user
+    // Get client_id and role from user
     final authService = Provider.of<AuthService>(context, listen: false);
-    final clientId = authService.user?.id;
+    final user = authService.user;
+    final clientId = user?.id;
+    final userRole = user?.role;
     
     if (clientId == null) {
       if (!mounted) return;
@@ -184,6 +186,43 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
         ),
       );
       return;
+    }
+
+    // Auto-set created role to current user's role (especially for technicians)
+    if (userRole != null && userRole.isNotEmpty) {
+      // Find the role in master data
+      final masterProvider = Provider.of<MasterProvider>(context, listen: false);
+      DropdownModel? roleModel;
+      
+      // Try to find role by exact match first
+      try {
+        roleModel = masterProvider.roles.firstWhere(
+          (r) => r.name.toLowerCase() == userRole.toLowerCase() ||
+                 (r.value != null && r.value!.toLowerCase() == userRole.toLowerCase()),
+        );
+      } catch (e) {
+        // Try partial match
+        try {
+          roleModel = masterProvider.roles.firstWhere(
+            (r) => r.name.toLowerCase().contains(userRole.toLowerCase()) ||
+                   userRole.toLowerCase().contains(r.name.toLowerCase()) ||
+                   (r.value != null && (r.value!.toLowerCase().contains(userRole.toLowerCase()) ||
+                                        userRole.toLowerCase().contains(r.value!.toLowerCase()))),
+          );
+        } catch (e2) {
+          roleModel = null;
+        }
+      }
+      
+      if (roleModel != null) {
+        purchaseProvider.setCreatedRoleId(roleModel.id);
+        purchaseProvider.setCreatedRole(roleModel.value ?? roleModel.name);
+        print('✅ Auto-set created role: ID=${roleModel.id}, Key=${roleModel.value ?? roleModel.name}');
+      } else {
+        // If role not found in master data, just set the role string
+        purchaseProvider.setCreatedRole(userRole);
+        print('⚠️ Role not found in master data, using role string: $userRole');
+      }
     }
     
     // Print form data before submission
@@ -601,6 +640,59 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Created Role - Hide for technicians
+                  Consumer<PurchaseRequestProvider>(
+                    builder: (context, purchaseProvider, child) {
+                      // Check if user is a technician
+                      final authService = Provider.of<AuthService>(context, listen: false);
+                      final user = authService.user;
+                      final userRole = user?.role?.toLowerCase().trim() ?? '';
+                      final isTechnician = userRole.contains('technician');
+
+                      // Hide field for technicians
+                      if (isTechnician) {
+                        return const SizedBox.shrink();
+                      }
+
+                      DropdownModel? selectedCreatedRole;
+                      // Try to find by ID first, then by key
+                      if (purchaseProvider.createdRoleId != null && masterProvider.roles.isNotEmpty) {
+                        try {
+                          selectedCreatedRole = masterProvider.roles.firstWhere(
+                            (r) => r.id == purchaseProvider.createdRoleId,
+                          );
+                        } catch (e) {
+                          selectedCreatedRole = null;
+                        }
+                      } else if (purchaseProvider.createdRole != null && purchaseProvider.createdRole!.isNotEmpty && masterProvider.roles.isNotEmpty) {
+                        try {
+                          selectedCreatedRole = masterProvider.roles.firstWhere(
+                            (r) => (r.value != null && r.value == purchaseProvider.createdRole) ||
+                                   r.name == purchaseProvider.createdRole,
+                          );
+                        } catch (e) {
+                          selectedCreatedRole = null;
+                        }
+                      }
+                      
+                      return DropdownField<DropdownModel>(
+                        key: ValueKey('created_role_${purchaseProvider.createdRoleId}_${purchaseProvider.createdRole}_${selectedCreatedRole?.id}'),
+                        label: 'Created Role',
+                        value: selectedCreatedRole,
+                        items: masterProvider.roles,
+                        onChanged: (value) {
+                          // Only set the ID - the key is not needed if we have the ID
+                          purchaseProvider.setCreatedRoleId(value?.id);
+                          if (value != null) {
+                            purchaseProvider.setCreatedRole(value.value ?? value.name);
+                          }
+                          print('✅ Created role set: ID=${value?.id}, Key=${value?.value ?? value?.name}');
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
 
