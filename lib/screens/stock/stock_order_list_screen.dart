@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/stock_order_provider.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../services/auth_service.dart';
 import 'stock_order_detail_screen.dart';
 
@@ -172,12 +173,11 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Stock Orders'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
+    return AppScaffold(
+      title: 'Stock Orders',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
             onPressed: () {
               final authService = Provider.of<AuthService>(context, listen: false);
               final user = authService.user;
@@ -192,8 +192,7 @@ class _StockOrderListScreenState extends State<StockOrderListScreen> {
               }
             },
           ),
-        ],
-      ),
+      ],
       body: Consumer<StockOrderProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.stockOrders.isEmpty) {

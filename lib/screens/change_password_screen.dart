@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_scaffold.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -65,12 +66,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Change Password'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-      ),
+    return AppScaffold(
+      title: 'Change Password',
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ticket_system/services/auth_service.dart';
+import 'package:ticket_system/widgets/app_scaffold.dart';
 import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -11,12 +12,8 @@ class ProfileScreen extends StatelessWidget {
     final authService = Provider.of<AuthService>(context);
     final user = authService.user;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-      ),
+    return AppScaffold(
+      title: 'Profile',
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(

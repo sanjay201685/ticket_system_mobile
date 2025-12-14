@@ -10,6 +10,7 @@ import '../../models/supplier_model.dart';
 import '../../widgets/dropdown_field.dart';
 import '../../widgets/item_row_widget.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../services/auth_service.dart';
 
 class PurchaseRequestCreateScreen extends StatefulWidget {
@@ -346,12 +347,8 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Purchase Request'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-      ),
+    return AppScaffold(
+      title: 'Create Purchase Request',
       body: Consumer<MasterProvider>(
         builder: (context, masterProvider, child) {
           if (masterProvider.isLoading) {
@@ -576,6 +573,16 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
                                 // Only set the ID - the key is not needed if we have the ID
                                 purchaseProvider.setPurchaseModeId(value?.id);
                                 print('✅ Purchase mode set: ID=${value?.id}, Key=${value?.value ?? value?.name}');
+                                
+                                // Clear payment option if switching to Credit mode
+                                if (value != null) {
+                                  final modeValue = (value.value ?? value.name ?? '').toLowerCase().trim();
+                                  if (modeValue.contains('credit')) {
+                                    purchaseProvider.setPaymentOptionId(null);
+                                    purchaseProvider.setPaymentOption(null);
+                                    print('🧹 Payment option cleared (Credit mode selected)');
+                                  }
+                                }
                               },
                               validator: (value) {
                                 if (purchaseProvider.purchaseModeId == null && (purchaseProvider.purchaseMode == null || purchaseProvider.purchaseMode!.isEmpty)) {
@@ -696,39 +703,75 @@ class _PurchaseRequestCreateScreenState extends State<PurchaseRequestCreateScree
                   ),
                   const SizedBox(height: 16),
 
-                  // Payment Option
+                  // Payment Option - Only show when Purchase Mode is Cash
                   Consumer<PurchaseRequestProvider>(
                     builder: (context, purchaseProvider, child) {
-                      DropdownModel? selectedPaymentOption;
-                      // Try to find by ID first, then by key
-                      if (purchaseProvider.paymentOptionId != null && masterProvider.paymentOptions.isNotEmpty) {
-                        try {
-                          selectedPaymentOption = masterProvider.paymentOptions.firstWhere(
-                            (po) => po.id == purchaseProvider.paymentOptionId,
+                      return Consumer<MasterProvider>(
+                        builder: (context, masterProvider, child) {
+                          // Get the selected purchase mode
+                          DropdownModel? selectedPurchaseMode;
+                          if (purchaseProvider.purchaseModeId != null && masterProvider.purchaseModes.isNotEmpty) {
+                            try {
+                              selectedPurchaseMode = masterProvider.purchaseModes.firstWhere(
+                                (pm) => pm.id == purchaseProvider.purchaseModeId,
+                              );
+                            } catch (e) {
+                              selectedPurchaseMode = null;
+                            }
+                          }
+                          
+                          // Check if purchase mode is Credit (hide payment option) or Cash (show payment option)
+                          bool isCreditMode = false;
+                          if (selectedPurchaseMode != null) {
+                            final modeValue = (selectedPurchaseMode.value ?? selectedPurchaseMode.name ?? '').toLowerCase().trim();
+                            isCreditMode = modeValue.contains('credit');
+                          }
+                          
+                          // Hide Payment Option field if Purchase Mode is Credit
+                          if (isCreditMode) {
+                            // Clear payment option when switching to credit mode
+                            if (purchaseProvider.paymentOptionId != null || purchaseProvider.paymentOption != null) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                purchaseProvider.setPaymentOptionId(null);
+                                purchaseProvider.setPaymentOption(null);
+                              });
+                            }
+                            return const SizedBox.shrink();
+                          }
+                          
+                          // Show Payment Option field only for Cash mode
+                          DropdownModel? selectedPaymentOption;
+                          // Try to find by ID first, then by key
+                          if (purchaseProvider.paymentOptionId != null && masterProvider.paymentOptions.isNotEmpty) {
+                            try {
+                              selectedPaymentOption = masterProvider.paymentOptions.firstWhere(
+                                (po) => po.id == purchaseProvider.paymentOptionId,
+                              );
+                            } catch (e) {
+                              selectedPaymentOption = null;
+                            }
+                          } else if (purchaseProvider.paymentOption != null && purchaseProvider.paymentOption!.isNotEmpty && masterProvider.paymentOptions.isNotEmpty) {
+                            try {
+                              selectedPaymentOption = masterProvider.paymentOptions.firstWhere(
+                                (po) => (po.value != null && po.value == purchaseProvider.paymentOption) ||
+                                        po.name == purchaseProvider.paymentOption,
+                              );
+                            } catch (e) {
+                              selectedPaymentOption = null;
+                            }
+                          }
+                          
+                          return DropdownField<DropdownModel>(
+                            key: ValueKey('payment_option_${purchaseProvider.paymentOptionId}_${purchaseProvider.paymentOption}_${selectedPaymentOption?.id}'),
+                            label: 'Payment Option',
+                            value: selectedPaymentOption,
+                            items: masterProvider.paymentOptions,
+                            onChanged: (value) {
+                              // Only set the ID - the key is not needed if we have the ID
+                              purchaseProvider.setPaymentOptionId(value?.id);
+                              print('✅ Payment option set: ID=${value?.id}, Key=${value?.value ?? value?.name}');
+                            },
                           );
-                        } catch (e) {
-                          selectedPaymentOption = null;
-                        }
-                      } else if (purchaseProvider.paymentOption != null && purchaseProvider.paymentOption!.isNotEmpty && masterProvider.paymentOptions.isNotEmpty) {
-                        try {
-                          selectedPaymentOption = masterProvider.paymentOptions.firstWhere(
-                            (po) => (po.value != null && po.value == purchaseProvider.paymentOption) ||
-                                    po.name == purchaseProvider.paymentOption,
-                          );
-                        } catch (e) {
-                          selectedPaymentOption = null;
-                        }
-                      }
-                      
-                      return DropdownField<DropdownModel>(
-                        key: ValueKey('payment_option_${purchaseProvider.paymentOptionId}_${purchaseProvider.paymentOption}_${selectedPaymentOption?.id}'),
-                        label: 'Payment Option',
-                        value: selectedPaymentOption,
-                        items: masterProvider.paymentOptions,
-                        onChanged: (value) {
-                          // Only set the ID - the key is not needed if we have the ID
-                          purchaseProvider.setPaymentOptionId(value?.id);
-                          print('✅ Payment option set: ID=${value?.id}, Key=${value?.value ?? value?.name}');
                         },
                       );
                     },

@@ -5,6 +5,7 @@ import '../../providers/team_leader_provider.dart';
 import '../../api/purchase_api.dart';
 import '../../models/purchase_request_model.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../services/auth_service.dart';
 
 class PurchaseRequestDetailScreen extends StatefulWidget {
@@ -322,10 +323,8 @@ class _PurchaseRequestDetailScreenState extends State<PurchaseRequestDetailScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Request Details'),
-      ),
+    return AppScaffold(
+      title: 'Purchase Request Details',
       body: _isLoading && _request == null
           ? const Padding(
               padding: EdgeInsets.all(16),

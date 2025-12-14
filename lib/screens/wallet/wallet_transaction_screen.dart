@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/wallet_provider.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../models/wallet_transaction_model.dart';
 
 class WalletTransactionScreen extends StatefulWidget {
@@ -282,54 +283,52 @@ class _WalletTransactionScreenState extends State<WalletTransactionScreen> {
     final user = authService.user;
     final targetUserId = widget.userId ?? user?.id ?? 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Wallet Transactions'),
-        actions: [
-          // Filter button
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
-            tooltip: 'Filter transactions',
+    return AppScaffold(
+      title: 'Wallet Transactions',
+      actions: [
+        // Filter button
+        IconButton(
+          icon: const Icon(Icons.filter_list),
+          onPressed: _showFilterDialog,
+          tooltip: 'Filter transactions',
+        ),
+        // Create transaction button
+        if (_canCreditWallet() || _canDebitWallet())
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.add),
+            tooltip: 'Create transaction',
+            onSelected: (value) {
+              setState(() {
+                _selectedType = value;
+              });
+              _showCreateTransactionDialog();
+            },
+            itemBuilder: (context) => [
+              if (_canCreditWallet())
+                const PopupMenuItem(
+                  value: 'credit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_circle, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text('Credit Wallet'),
+                    ],
+                  ),
+                ),
+              if (_canDebitWallet())
+                const PopupMenuItem(
+                  value: 'debit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.remove_circle, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Debit Wallet'),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          // Create transaction button
-          if (_canCreditWallet() || _canDebitWallet())
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.add),
-              tooltip: 'Create transaction',
-              onSelected: (value) {
-                setState(() {
-                  _selectedType = value;
-                });
-                _showCreateTransactionDialog();
-              },
-              itemBuilder: (context) => [
-                if (_canCreditWallet())
-                  const PopupMenuItem(
-                    value: 'credit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add_circle, color: Colors.green),
-                        SizedBox(width: 8),
-                        Text('Credit Wallet'),
-                      ],
-                    ),
-                  ),
-                if (_canDebitWallet())
-                  const PopupMenuItem(
-                    value: 'debit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.remove_circle, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Debit Wallet'),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-        ],
-      ),
+      ],
       body: Consumer<WalletProvider>(
         builder: (context, provider, child) {
           // Show balance card at top

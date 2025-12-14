@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/team_leader_provider.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../screens/purchase/purchase_request_detail_screen.dart';
 
 class PurchaseRequestListScreen extends StatefulWidget {
@@ -99,19 +100,17 @@ class _PurchaseRequestListScreenState extends State<PurchaseRequestListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Requests'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              Provider.of<TeamLeaderProvider>(context, listen: false)
-                  .loadPurchaseRequests(forceReload: true);
-            },
-          ),
-        ],
-      ),
+    return AppScaffold(
+      title: 'Purchase Requests',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: () {
+            Provider.of<TeamLeaderProvider>(context, listen: false)
+                .loadPurchaseRequests(forceReload: true);
+          },
+        ),
+      ],
       body: Consumer<TeamLeaderProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.purchaseRequests.isEmpty) {

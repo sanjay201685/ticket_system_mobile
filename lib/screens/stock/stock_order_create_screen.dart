@@ -6,6 +6,7 @@ import '../../models/dropdown_model.dart';
 import '../../models/item_model.dart';
 import '../../models/stock_order_model.dart';
 import '../../widgets/shimmer_loader.dart';
+import '../../widgets/app_scaffold.dart';
 import '../../services/auth_service.dart';
 import 'stock_order_list_screen.dart';
 
@@ -192,10 +193,8 @@ class _StockOrderCreateScreenState extends State<StockOrderCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Stock Order'),
-      ),
+    return AppScaffold(
+      title: 'Create Stock Order',
       body: Consumer<MasterProvider>(
         builder: (context, masterProvider, child) {
           if (masterProvider.isLoading) {
